@@ -1,6 +1,6 @@
 #include "voxel_renderer.h"
 
-bool voxel_renderer_init(voxel_renderer *renderer, dm_context *context, dm_arena *arena, dm_handle resource_heap, dm_handle sampler_heap)
+bool voxel_renderer_init(voxel_renderer *renderer, dm_context *context, dm_arena *arena)
 {
     dm_raster_shader vertex_shader = {
         .path="../../assets/shaders/voxel_vertex.glsl",
@@ -37,7 +37,7 @@ bool voxel_renderer_init(voxel_renderer *renderer, dm_context *context, dm_arena
         for(u32 y=0; y<400; y++)
         {
             u32 color = 0;
-            color |= 0xFF000000;
+            color |= 0xFFa6afa2;
 
             renderer->texture_data[y * 400 + x] = color;
         }
@@ -111,8 +111,8 @@ bool voxel_renderer_init(voxel_renderer *renderer, dm_context *context, dm_arena
     dm_handle *resources[] = { &renderer->vb_gpu, &renderer->ib_gpu, &renderer->pd_gpu, &renderer->texture };
     dm_handle *samplers[]  = { &renderer->sampler };
 
-    if(!dm_renderer_upload_resources_to_heap(context, resource_heap, resources, 4)) return false;
-    if(!dm_renderer_upload_samplers_to_heap(context, sampler_heap, samplers, 1)) return false;
+    if(!dm_renderer_upload_resources_to_heap(context, resources, 4)) return false;
+    if(!dm_renderer_upload_samplers_to_heap(context, samplers, 1)) return false;
 
     LOG_DEBUG("VB heap index: %u", renderer->vb_gpu.heap_index);
     LOG_DEBUG("IB heap index: %u", renderer->ib_gpu.heap_index);
