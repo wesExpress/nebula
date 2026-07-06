@@ -1,0 +1,6 @@
+[submodule "lib/DarkMatter"]
+	path = lib/DarkMatter
+	url = git@github.com:wesExpress/DarkMatter.git
+[submodule "lib/cglm"]
+	path = lib/cglm
+	url = git@github.com:recp/cglm.git
