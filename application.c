@@ -10,9 +10,6 @@ bool application_init(application *app, size_t size, u16 width, u16 height, cons
 
     if(!dm_init(app->context, width, height, title, 0)) return false;
 
-    app->renderer = dm_arena_alloc(&app->arena, sizeof(voxel_renderer), &app->renderer_offset);
-    if(!app->renderer) return false;
-
     /*****************
      * RENDER HANDLES
      ******************/
@@ -21,8 +18,8 @@ bool application_init(application *app, size_t size, u16 width, u16 height, cons
         .store_op=DM_RENDER_ATTACHMENT_STORE_OP_STORE
     };
     dm_render_attachment_desc depth_desc = {
-        .load_op=DM_RENDER_ATTACHMENT_LOAD_OP_DONT_CARE,
-        .store_op=DM_RENDER_ATTACHMENT_STORE_OP_STORE
+        .load_op=DM_RENDER_ATTACHMENT_LOAD_OP_CLEAR,
+        .store_op=DM_RENDER_ATTACHMENT_STORE_OP_DONT_CARE
     };
     dm_render_target_desc swapchain_desc = {
         .type=DM_RENDER_TARGET_TYPE_SWAPCHAIN,
@@ -41,6 +38,13 @@ bool application_init(application *app, size_t size, u16 width, u16 height, cons
 
     if(!dm_renderer_create_resource_descriptor_heap(app->context, resource_heap_desc, &app->resource_heap)) return false;
     if(!dm_renderer_create_sampler_descriptor_heap(app->context, sampler_heap_desc, &app->sampler_heap)) return false;
+
+    /*****************
+     * VOXEL RENDERER
+     ******************/
+    app->renderer = dm_arena_alloc(&app->arena, sizeof(voxel_renderer), &app->renderer_offset);
+    if(!app->renderer) return false;
+    if(!voxel_renderer_init(app->renderer, app->context, &app->arena, app->resource_heap, app->sampler_heap)) return false;
 
     return true;
 }
