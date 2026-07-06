@@ -6,7 +6,7 @@ project(nebula)
 
 add_subdirectory(lib/DarkMatter)
 
-set(SOURCES main.c)
+set(SOURCES main.c application.c)
 
 add_executable(${PROJECT_NAME} ${SOURCES})
 
