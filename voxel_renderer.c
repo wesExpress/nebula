@@ -1,5 +1,27 @@
 #include "voxel_renderer.h"
 
+bool create_buffer(dm_context *context, voxel_buffer *buffer, dm_buffer_type type, void *data, size_t size)
+{
+    dm_buffer_desc cpu_desc = {
+        .type=DM_BUFFER_TYPE_STORAGE,
+        .reside=DM_BUFFER_RESIDE_CPU,
+        .size=size,
+        .data=data
+    };
+    if(!dm_renderer_create_buffer(context, cpu_desc, &buffer->cpu)) return false;
+
+    dm_buffer_desc gpu_desc = {
+        .type=type,
+        .reside=DM_BUFFER_RESIDE_GPU,
+        .size=size
+    };
+    if(!dm_renderer_create_buffer(context, gpu_desc, &buffer->gpu)) return false;
+
+    dm_render_command_copy_buffer(context, buffer->cpu, buffer->gpu);
+
+    return true;
+}
+
 bool voxel_renderer_init(voxel_renderer *renderer, dm_context *context, dm_arena *arena)
 {
     dm_raster_shader vertex_shader = {
@@ -55,6 +77,10 @@ bool voxel_renderer_init(voxel_renderer *renderer, dm_context *context, dm_arena
     };
     if(!dm_renderer_create_texture(context, texture_desc, &renderer->texture)) return false;
 
+    // sampler
+    dm_sampler_desc sampler_desc = { 0 };
+    if(!dm_renderer_create_sampler(context, sampler_desc, &renderer->sampler)) return false;
+
     // buffers
     voxel_vertex vertices[] = {
         { { -1,-1 }, { 0,0 } },
@@ -63,79 +89,48 @@ bool voxel_renderer_init(voxel_renderer *renderer, dm_context *context, dm_arena
         { {  1,-1 }, { 1,0 } },
     };
 
-    dm_buffer_desc vb_desc = {    
-        .type=DM_BUFFER_TYPE_VERTEX,
-        .reside=DM_BUFFER_RESIDE_CPU,
-        .size=sizeof(vertices),
-        .data=vertices
-    };
-
-    if(!dm_renderer_create_buffer(context, vb_desc, &renderer->vb_cpu)) return false;
-
-    vb_desc.reside = DM_BUFFER_RESIDE_GPU;
-    vb_desc.data   = NULL;
-    if(!dm_renderer_create_buffer(context, vb_desc, &renderer->vb_gpu)) return false;
-
     u32 indices[] = {
         0,1,2,
         3,0,2
     };
 
-    dm_buffer_desc ib_desc = {
-        .type=DM_BUFFER_TYPE_INDEX,
-        .reside=DM_BUFFER_RESIDE_CPU,
-        .size=sizeof(indices),
-        .data=indices
-    };
+    if(!create_buffer(context, &renderer->vb, DM_BUFFER_TYPE_VERTEX, vertices, sizeof(vertices))) return false;
+    if(!create_buffer(context, &renderer->ib, DM_BUFFER_TYPE_INDEX,  indices,  sizeof(indices)))  return false;
 
-    if(!dm_renderer_create_buffer(context, ib_desc, &renderer->ib_cpu)) return false;
+    // camera
+    vec3 cam_pos     = { 0,0,10 };
+    vec3 cam_forward = { 0,0,-1 };
+    vec3 cam_up      = { 0,1,0 };
 
-    ib_desc.reside = DM_BUFFER_RESIDE_GPU;
-    ib_desc.data   = NULL;
-    if(!dm_renderer_create_buffer(context, ib_desc, &renderer->ib_gpu)) return false;
+    float aspect_ratio = (float)context->window.width / (float)context->window.height;
+    float fov = 80.f;
 
-    dm_buffer_desc pd_desc = {
-        .type=DM_BUFFER_TYPE_STORAGE,
-        .reside=DM_BUFFER_RESIDE_CPU,
-        .size=sizeof(voxel_push_data),
-        .data=&renderer->push_data
-    };
+    renderer->camera = camera_init(cam_pos, cam_forward, cam_up, fov, aspect_ratio, 0.001f, 100.f);
+    memcpy(renderer->scene_data.view_proj, renderer->camera.view_projection, sizeof(mat4));
 
-    if(!dm_renderer_create_buffer(context, pd_desc, &renderer->pd_cpu)) return false;
-
-    pd_desc.reside = DM_BUFFER_RESIDE_GPU;
-    if(!dm_renderer_create_buffer(context, pd_desc, &renderer->pd_gpu)) return false;
-
-    // sampler
-    dm_sampler_desc sampler_desc = { 0 };
-    if(!dm_renderer_create_sampler(context, sampler_desc, &renderer->sampler)) return false;
+    if(!create_buffer(context, &renderer->cb, DM_BUFFER_TYPE_STORAGE, &renderer->scene_data, sizeof(renderer->scene_data))) return false;
 
     // submit resources
-    dm_handle *resources[] = { &renderer->vb_gpu, &renderer->ib_gpu, &renderer->pd_gpu, &renderer->texture };
+    dm_handle *resources[] = { &renderer->vb.gpu, &renderer->texture, &renderer->cb.gpu };
     dm_handle *samplers[]  = { &renderer->sampler };
 
-    if(!dm_renderer_upload_resources_to_heap(context, resources, 4)) return false;
+    if(!dm_renderer_upload_resources_to_heap(context, resources, 3)) return false;
     if(!dm_renderer_upload_samplers_to_heap(context, samplers, 1)) return false;
 
-    LOG_DEBUG("VB heap index: %u", renderer->vb_gpu.heap_index);
-    LOG_DEBUG("IB heap index: %u", renderer->ib_gpu.heap_index);
-    LOG_DEBUG("PD heap index: %u", renderer->pd_gpu.heap_index);
+    LOG_DEBUG("VB heap index: %u", renderer->vb.gpu.heap_index);
+    LOG_DEBUG("CB heap index: %u", renderer->cb.gpu.heap_index);
     LOG_DEBUG("Texture heap index: %u", renderer->texture.heap_index);
     LOG_DEBUG("Sampler heap index: %u", renderer->sampler.heap_index);
 
-    // copy over to gpu
-    dm_render_command_copy_buffer(context, renderer->vb_cpu, renderer->vb_gpu);
-    dm_render_command_copy_buffer(context, renderer->ib_cpu, renderer->ib_gpu);
-
     // push indices
-    renderer->push_data.vb_index      = renderer->vb_gpu.heap_index;
+    renderer->push_data.vb_index      = renderer->vb.gpu.heap_index;
     renderer->push_data.texture_index = renderer->texture.heap_index;
     renderer->push_data.sampler_index = renderer->sampler.heap_index;
+    renderer->push_data.camera_index  = renderer->cb.gpu.heap_index;
 
-    dm_render_command_update_buffer(context, renderer->pd_cpu, &renderer->push_data, sizeof(voxel_push_data));
-    dm_render_command_copy_buffer(context, renderer->pd_cpu, renderer->pd_gpu);
+    if(!create_buffer(context, &renderer->pd, DM_BUFFER_TYPE_STORAGE, &renderer->push_data, sizeof(voxel_push_data))) return false;
 
-    renderer->push_address = dm_renderer_get_buffer_address(context, renderer->pd_gpu);
+    renderer->push_address = dm_renderer_get_buffer_address(context, renderer->pd.gpu);
 
     return true;
 }
@@ -153,22 +148,43 @@ bool voxel_renderer_update(voxel_renderer *renderer, dm_context *context)
 
         renderer->texture_width  = width;
         renderer->texture_height = height;
-    }
 
-    const u16 width = renderer->texture_width;
-    const u16 height = renderer->texture_height;
-
-    for(u32 x=0; x<width; x++)
-    {
-        for(u32 y=0; y<height; y++)
+        for(u32 x=0; x<width; x++)
         {
-            u32 color = 0xFFFF00FF;
+            for(u32 y=0; y<height; y++)
+            {
+                u32 color = 0xFFFF00FF;
 
-            renderer->texture_data[y * width + x] = color;
+                renderer->texture_data[y * width + x] = color;
+            }
         }
+
+        if(!dm_render_command_update_texture(context, renderer->texture, renderer->texture_data, renderer->texture_data_size, width, height)) return false;
     }
 
-    if(!dm_render_command_update_texture(context, renderer->texture, renderer->texture_data, renderer->texture_data_size, width, height)) return false;
+    if(dm_is_key_pressed(context, 65))
+    {
+        renderer->camera.position[0] -= 0.1f;
+    }
+    else if(dm_is_key_pressed(context, 68))
+    {
+        renderer->camera.position[0] += 0.1f;
+    }
+
+    if(dm_is_key_pressed(context, 87))
+    {
+        renderer->camera.position[2] -= 0.1f;
+    }
+    else if(dm_is_key_pressed(context, 83))
+    {
+        renderer->camera.position[2] += 0.1f;
+    }
+
+    camera_update(&renderer->camera);
+    //glm_mat4_mul(renderer->camera.projection, renderer->camera.view, renderer->camera.view_projection);
+    memcpy(renderer->scene_data.view_proj, renderer->camera.view_projection, sizeof(mat4));
+    dm_render_command_update_buffer(context, renderer->cb.cpu, &renderer->scene_data, sizeof(renderer->scene_data));
+    dm_render_command_copy_buffer(context, renderer->cb.cpu, renderer->cb.gpu);
 
     return true;
 }
@@ -179,7 +195,7 @@ void voxel_renderer_render(voxel_renderer *renderer, dm_context *context, dm_han
     dm_render_command_begin_rendering(context, swapchain, 0.1f, 0.2f, 0.2f, 1.f, 1.f);
 
         dm_render_command_bind_pipeline(context, renderer->pipeline);
-        dm_render_command_bind_index_buffer(context, renderer->ib_gpu, 0);
+        dm_render_command_bind_index_buffer(context, renderer->ib.gpu, 0);
         dm_render_command_push_data(context, &renderer->push_address, sizeof(renderer->push_address));
         dm_render_command_draw(context, 6, 1);
     
