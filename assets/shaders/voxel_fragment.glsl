@@ -28,5 +28,5 @@ void main()
     fragment_color = texture(sampler2D(texture_heap[c.texture_index], sampler_heap[c.sampler_index]), vertex_uv);
 
     //fragment_color = vec4(vertex_uv, 0, 1);
-    //fragment_color = vec4(1,1,1,1);
+    fragment_color = vec4(1,1,1,1);
 }

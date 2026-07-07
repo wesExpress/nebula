@@ -32,6 +32,7 @@ typedef struct voxel_renderer_t
 
     u32 *texture_data;
     u16 texture_width, texture_height;
+    size_t texture_data_size;
 
     dm_arena texture_arena;
 

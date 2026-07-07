@@ -32,8 +32,6 @@ void main()
 {
     constants c = constants(push_data.c);
 
-    vertex v = vertex_buffer_heap[c.vb_index].vertices[gl_VertexIndex];
-
     gl_Position = vec4(vertex_buffer_heap[c.vb_index].vertices[gl_VertexIndex].position, 0, 1);
     vertex_uv   = vertex_buffer_heap[c.vb_index].vertices[gl_VertexIndex].uv;
 }

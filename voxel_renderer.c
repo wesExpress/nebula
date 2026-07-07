@@ -29,17 +29,20 @@ bool voxel_renderer_init(voxel_renderer *renderer, dm_context *context, dm_arena
     if(!dm_renderer_create_raster_pipeline(context, pipe_desc, &renderer->pipeline)) return false;
 
     // texture
-    const size_t texture_size = sizeof(u32) * 400 * 400;
+    renderer->texture_width = context->window.width;
+    renderer->texture_height = context->window.height;
+    const size_t texture_size = sizeof(u32) * renderer->texture_width * renderer->texture_height;
     size_t offset;
     renderer->texture_data = malloc(texture_size);
-    for(u32 x=0; x<400; x++)
+    renderer->texture_data_size = texture_size;
+    for(u32 x=0; x<renderer->texture_width; x++)
     {
-        for(u32 y=0; y<400; y++)
+        for(u32 y=0; y<renderer->texture_height; y++)
         {
             u32 color = 0;
-            color |= 0xFF16bf92;
+            color |= 0xFF00FF00;
 
-            renderer->texture_data[y * 400 + x] = color;
+            renderer->texture_data[y * renderer->texture_width + x] = color;
         }
     }
 
@@ -146,18 +149,26 @@ bool voxel_renderer_update(voxel_renderer *renderer, dm_context *context)
         const size_t data_size = sizeof(u32) * width * height;
 
         renderer->texture_data = realloc(renderer->texture_data, data_size);
-        for(u32 x=0; x<width; x++)
-        {
-            for(u32 y=0; y<height; y++)
-            {
-                u32 color = 0xFF0000FF;
+        renderer->texture_data_size = data_size;
 
-                renderer->texture_data[y * width + x] = color;
-            }
-        }
-
-        if(!dm_render_command_update_texture(context, renderer->texture, renderer->texture_data, data_size, width, height)) return false;
+        renderer->texture_width  = width;
+        renderer->texture_height = height;
     }
+
+    const u16 width = renderer->texture_width;
+    const u16 height = renderer->texture_height;
+
+    for(u32 x=0; x<width; x++)
+    {
+        for(u32 y=0; y<height; y++)
+        {
+            u32 color = 0xFF0000FF;
+
+            renderer->texture_data[y * width + x] = color;
+        }
+    }
+
+    //if(!dm_render_command_update_texture(context, renderer->texture, renderer->texture_data, renderer->texture_data_size, width, height)) return false;
 
     return true;
 }
