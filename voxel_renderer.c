@@ -31,13 +31,13 @@ bool voxel_renderer_init(voxel_renderer *renderer, dm_context *context, dm_arena
     // texture
     const size_t texture_size = sizeof(u32) * 400 * 400;
     size_t offset;
-    renderer->texture_data = dm_arena_alloc(arena, texture_size, &offset);
+    renderer->texture_data = malloc(texture_size);
     for(u32 x=0; x<400; x++)
     {
         for(u32 y=0; y<400; y++)
         {
             u32 color = 0;
-            color |= 0xFFa6afa2;
+            color |= 0xFF16bf92;
 
             renderer->texture_data[y * 400 + x] = color;
         }
@@ -137,8 +137,29 @@ bool voxel_renderer_init(voxel_renderer *renderer, dm_context *context, dm_arena
     return true;
 }
 
-void voxel_renderer_update(voxel_renderer *renderer, dm_context *context)
+bool voxel_renderer_update(voxel_renderer *renderer, dm_context *context)
 {
+    if(dm_window_resized(context))
+    {
+        const u16 width  = context->window.width;
+        const u16 height = context->window.height;
+        const size_t data_size = sizeof(u32) * width * height;
+
+        renderer->texture_data = realloc(renderer->texture_data, data_size);
+        for(u32 x=0; x<width; x++)
+        {
+            for(u32 y=0; y<height; y++)
+            {
+                u32 color = 0xFF0000FF;
+
+                renderer->texture_data[y * width + x] = color;
+            }
+        }
+
+        if(!dm_render_command_update_texture(context, renderer->texture, renderer->texture_data, data_size, width, height)) return false;
+    }
+
+    return true;
 }
 
 void voxel_renderer_render(voxel_renderer *renderer, dm_context *context, dm_handle swapchain)

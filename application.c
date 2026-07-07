@@ -52,23 +52,33 @@ void application_run(application *app)
 {
     while(dm_is_running(app->context))
     {
-        dm_update(app->context);
+        /**************
+         * BEGIN FRAME
+         ***************/
+        if(!dm_update_begin(app->context)) break;
+
+        if(!voxel_renderer_update(app->renderer, app->context)) break;
 
         /*********
          * RENDER
          **********/
         if(!dm_render_begin(app->context)) break;
 
-        //dm_render_command_begin_rendering(app->context, app->swapchain, 0.5f, 0.5f, 0.1f, 1.f, 1.f);
         voxel_renderer_render(app->renderer, app->context, app->swapchain);
-        //dm_render_command_end_rendering(app->context, app->swapchain);
 
         if(!dm_render_end(app->context))   break;
+
+        /************
+         * END FRAME
+         *************/
+        dm_update_end(app->context);
     }
 }
 
 void application_shutdown(application *app)
 {
+    free(app->renderer->texture_data);
+
     dm_shutdown(app->context);
     dm_arena_detroy(&app->arena);
 }
