@@ -137,6 +137,10 @@ bool voxel_renderer_init(voxel_renderer *renderer, dm_context *context, dm_arena
     return true;
 }
 
+void voxel_renderer_update(voxel_renderer *renderer, dm_context *context)
+{
+}
+
 void voxel_renderer_render(voxel_renderer *renderer, dm_context *context, dm_handle swapchain)
 {
     // render

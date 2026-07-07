@@ -46,6 +46,7 @@ typedef struct voxel_renderer_t
 } voxel_renderer;
 
 bool voxel_renderer_init(voxel_renderer *renderer, dm_context *context, dm_arena *arena);
+void voxel_renderer_update(voxel_renderer *renderer, dm_context *context);
 void voxel_renderer_render(voxel_renderer *renderer, dm_context *context, dm_handle swapchain);
 
 #endif // __VOXEL_RENDERER_H__

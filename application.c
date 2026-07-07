@@ -9,6 +9,11 @@ bool application_init(application *app, size_t size, u16 width, u16 height, cons
     if(!app->context) return false;
 
     if(!dm_init(app->context, width, height, title, 0)) return false;
+#ifdef DM_DEBUG
+    LOG_DEBUG("DM arena capacity :  %zu", app->context->arena.capacity);
+    LOG_DEBUG("DM arena size     :  %zu", app->context->arena.size);
+    LOG_DEBUG("DM arena remaining:  %zu", app->context->arena.capacity - app->context->arena.size);
+#endif
 
     /*****************
      * RENDER HANDLES
@@ -34,6 +39,11 @@ bool application_init(application *app, size_t size, u16 width, u16 height, cons
     app->renderer = dm_arena_alloc(&app->arena, sizeof(voxel_renderer), &app->renderer_offset);
     if(!app->renderer) return false;
     if(!voxel_renderer_init(app->renderer, app->context, &app->arena)) return false;
+#ifdef DM_DEBUG
+    LOG_DEBUG("App arena capacity:   %zu", app->arena.capacity);
+    LOG_DEBUG("App arena size:       %zu", app->arena.size);
+    LOG_DEBUG("App arena remaining:  %zu", app->arena.capacity - app->arena.size);
+#endif
 
     return true;
 }
