@@ -162,13 +162,13 @@ bool voxel_renderer_update(voxel_renderer *renderer, dm_context *context)
     {
         for(u32 y=0; y<height; y++)
         {
-            u32 color = 0xFF0000FF;
+            u32 color = 0xFFFF00FF;
 
             renderer->texture_data[y * width + x] = color;
         }
     }
 
-    //if(!dm_render_command_update_texture(context, renderer->texture, renderer->texture_data, renderer->texture_data_size, width, height)) return false;
+    if(!dm_render_command_update_texture(context, renderer->texture, renderer->texture_data, renderer->texture_data_size, width, height)) return false;
 
     return true;
 }
