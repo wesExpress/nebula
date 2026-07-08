@@ -77,8 +77,6 @@ void application_run(application *app)
 
 void application_shutdown(application *app)
 {
-    free(app->renderer->texture_data);
-
     dm_shutdown(app->context);
     dm_arena_detroy(&app->arena);
 }

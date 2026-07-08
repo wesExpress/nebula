@@ -11,8 +11,8 @@ typedef struct voxel_t
 
 typedef struct voxel_vertex_t
 {
-    vec2 position;
-    vec2 uv;
+    vec4 position_u;
+    vec4 color_v;
 } voxel_vertex;
 
 typedef struct voxel_scene_data_t
@@ -61,10 +61,6 @@ typedef struct voxel_renderer_t
      ******************/
     voxel *voxels;
     u32   voxel_count;
-
-    u32 *texture_data;
-    u16 texture_width, texture_height;
-    size_t texture_data_size;
 } voxel_renderer;
 
 bool voxel_renderer_init(voxel_renderer *renderer, dm_context *context, dm_arena *arena);

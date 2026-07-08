@@ -4,6 +4,7 @@
 #extension GL_EXT_nonuniform_qualifier : require
 
 layout (location=0) out vec2 vertex_uv;
+layout (location=1) out vec3 vertex_color;
 
 layout (buffer_reference) readonly buffer constants
 {
@@ -15,8 +16,8 @@ layout (buffer_reference) readonly buffer constants
 
 struct vertex
 {
-    vec2 position;
-    vec2 uv;
+    vec4 pos_u;
+    vec4 color_v;
 };
 
 layout (descriptor_heap) readonly buffer vertex_buffer_t
@@ -41,10 +42,15 @@ void main()
     mat4 view_proj = scene_heap[c.camera_index].view_proj;
     mat4 model = mat4(1.f);
 
-    vec4 position = vec4(vertex_buffer_heap[c.vb_index].vertices[gl_VertexIndex].position, 0, 1);
+    vec4 pos_u = vertex_buffer_heap[c.vb_index].vertices[gl_VertexIndex].pos_u;
+    vec4 color_v = vertex_buffer_heap[c.vb_index].vertices[gl_VertexIndex].color_v;
+
+    vec4 position = vec4(pos_u.xyz, 1);
     position = model * position;
     position = view_proj * position;
 
     gl_Position = position;
-    vertex_uv   = vertex_buffer_heap[c.vb_index].vertices[gl_VertexIndex].uv;
+
+    vertex_uv = vec2(pos_u.w, color_v.w);
+    vertex_color = vec3(color_v.rgb);
 }

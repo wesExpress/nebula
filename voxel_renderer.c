@@ -1,5 +1,8 @@
 #include "voxel_renderer.h"
 
+#define STB_IMAGE_IMPLEMENTATION
+#include "stb_image/stb_image.h"
+
 bool create_buffer(dm_context *context, voxel_buffer *buffer, dm_buffer_type type, void *data, size_t size)
 {
     dm_buffer_desc cpu_desc = {
@@ -51,31 +54,21 @@ bool voxel_renderer_init(voxel_renderer *renderer, dm_context *context, dm_arena
     if(!dm_renderer_create_raster_pipeline(context, pipe_desc, &renderer->pipeline)) return false;
 
     // texture
-    renderer->texture_width = context->window.width;
-    renderer->texture_height = context->window.height;
-    const size_t texture_size = sizeof(u32) * renderer->texture_width * renderer->texture_height;
-    size_t offset;
-    renderer->texture_data = calloc(sizeof(u8), texture_size);
-    renderer->texture_data_size = texture_size;
-    for(u32 x=0; x<renderer->texture_width; x++)
-    {
-        for(u32 y=0; y<renderer->texture_height; y++)
-        {
-            u32 color = 0;
-            color |= 0xFF00FF00;
+    int w,h,n;
 
-            renderer->texture_data[y * renderer->texture_width + x] = color;
-        }
-    }
+    void *texture_data = stbi_load("../../assets/textures/grid.jpg", &w, &h, &n, 4);
+    if(!texture_data) return false;
 
     dm_texture2d_desc texture_desc = {
-        .width=400,
-        .height=400,
-        .size=texture_size,
+        .width=w,
+        .height=h,
+        .size=sizeof(u32) * w * h,
         .type=DM_TEXTURE2D_TYPE_SAMPLED,
-        .data=renderer->texture_data
+        .data=texture_data
     };
     if(!dm_renderer_create_texture(context, texture_desc, &renderer->texture)) return false;
+
+    stbi_image_free(texture_data);
 
     // sampler
     dm_sampler_desc sampler_desc = { 0 };
@@ -83,10 +76,10 @@ bool voxel_renderer_init(voxel_renderer *renderer, dm_context *context, dm_arena
 
     // buffers
     voxel_vertex vertices[] = {
-        { { -1,-1 }, { 0,0 } },
-        { { -1, 1 }, { 0,1 } },
-        { {  1, 1 }, { 1,1 } },
-        { {  1,-1 }, { 1,0 } },
+        { { -1,-1,0,  0 }, { 1,0,0,  0 } },
+        { { -1, 1,0,  0 }, { 0,1,0,  1 } },
+        { {  1, 1,0,  1 }, { 0,0,1,  1 } },
+        { {  1,-1,0,  1 }, { 0,1,1,  0 } },
     };
 
     u32 indices[] = {
@@ -116,8 +109,6 @@ bool voxel_renderer_init(voxel_renderer *renderer, dm_context *context, dm_arena
     glm_look(renderer->cam_pos, renderer->cam_forward, renderer->cam_up, view);
     glm_perspective(renderer->fov, renderer->aspect, renderer->znear, renderer->zfar, proj);
     glm_mat4_mul(proj, view, renderer->scene_data.view_proj);
-
-    //memcpy(renderer->scene_data.view_proj, renderer->camera.view_projection, sizeof(mat4));
 
     for(u8 i=0; i<DM_FRAMES_IN_FLIGHT; i++)
     {
@@ -153,31 +144,6 @@ bool voxel_renderer_init(voxel_renderer *renderer, dm_context *context, dm_arena
 bool voxel_renderer_update(voxel_renderer *renderer, dm_context *context)
 {
     const u8 current_frame = context->renderer.current_frame;
-
-    if(dm_window_resized(context))
-    {
-        const u16 width  = context->window.width;
-        const u16 height = context->window.height;
-        const size_t data_size = sizeof(u32) * width * height;
-
-        renderer->texture_data = realloc(renderer->texture_data, data_size);
-        renderer->texture_data_size = data_size;
-
-        renderer->texture_width  = width;
-        renderer->texture_height = height;
-
-        for(u32 x=0; x<width; x++)
-        {
-            for(u32 y=0; y<height; y++)
-            {
-                u32 color = 0xFFFF00FF;
-
-                renderer->texture_data[y * width + x] = color;
-            }
-        }
-
-        if(!dm_render_command_update_texture(context, renderer->texture, renderer->texture_data, renderer->texture_data_size, width, height)) return false;
-    }
 
     if(dm_is_key_pressed(context, 65))
     {
