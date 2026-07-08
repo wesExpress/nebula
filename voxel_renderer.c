@@ -76,10 +76,10 @@ bool voxel_renderer_init(voxel_renderer *renderer, dm_context *context, dm_arena
 
     // buffers
     voxel_vertex vertices[] = {
-        { { -1,-1,0,  0 }, { 1,0,0,  0 } },
-        { { -1, 1,0,  0 }, { 0,1,0,  1 } },
-        { {  1, 1,0,  1 }, { 0,0,1,  1 } },
-        { {  1,-1,0,  1 }, { 0,1,1,  0 } },
+        { { -1,-1,0,  0 }, { 0,0,1,  0 }, { 1,0,0,1 } },
+        { { -1, 1,0,  0 }, { 0,0,1,  1 }, { 0,1,0,1 } },
+        { {  1, 1,0,  1 }, { 0,0,1,  1 }, { 0,0,1,1 } },
+        { {  1,-1,0,  1 }, { 0,0,1,  0 }, { 0,1,1,1 } },
     };
 
     u32 indices[] = {
@@ -164,6 +164,8 @@ bool voxel_renderer_update(voxel_renderer *renderer, dm_context *context)
     }
 
     mat4 view, proj;
+
+    renderer->aspect = (float)context->window.width / (float)context->window.height;
 
     glm_look(renderer->cam_pos, renderer->cam_forward, renderer->cam_up, view);
     glm_perspective(renderer->fov, renderer->aspect, renderer->znear, renderer->zfar, proj);

@@ -12,7 +12,8 @@ typedef struct voxel_t
 typedef struct voxel_vertex_t
 {
     vec4 position_u;
-    vec4 color_v;
+    vec4 normal_v;
+    vec4 color;
 } voxel_vertex;
 
 typedef struct voxel_scene_data_t
