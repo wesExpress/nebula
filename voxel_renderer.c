@@ -55,7 +55,7 @@ bool voxel_renderer_init(voxel_renderer *renderer, dm_context *context, dm_arena
     renderer->texture_height = context->window.height;
     const size_t texture_size = sizeof(u32) * renderer->texture_width * renderer->texture_height;
     size_t offset;
-    renderer->texture_data = malloc(texture_size);
+    renderer->texture_data = calloc(sizeof(u8), texture_size);
     renderer->texture_data_size = texture_size;
     for(u32 x=0; x<renderer->texture_width; x++)
     {
@@ -98,15 +98,26 @@ bool voxel_renderer_init(voxel_renderer *renderer, dm_context *context, dm_arena
     if(!create_buffer(context, &renderer->ib, DM_BUFFER_TYPE_INDEX,  indices,  sizeof(indices)))  return false;
 
     // camera
-    vec3 cam_pos     = { 0,0,10 };
+    vec3 cam_pos     = { 0,0,5};
     vec3 cam_forward = { 0,0,-1 };
     vec3 cam_up      = { 0,1,0 };
 
-    float aspect_ratio = (float)context->window.width / (float)context->window.height;
-    float fov = 80.f;
+    renderer->aspect = (float)context->window.width / (float)context->window.height;
+    renderer->fov = 70.f;
+    renderer->znear = 0.01f;
+    renderer->zfar = 100.f;
 
-    renderer->camera = camera_init(cam_pos, cam_forward, cam_up, fov, aspect_ratio, 0.001f, 100.f);
-    memcpy(renderer->scene_data.view_proj, renderer->camera.view_projection, sizeof(mat4));
+    glm_vec3_dup(cam_pos, renderer->cam_pos);
+    glm_vec3_dup(cam_forward, renderer->cam_forward);
+    glm_vec3_dup(cam_up, renderer->cam_up);
+
+    mat4 view, proj;
+
+    glm_look(renderer->cam_pos, renderer->cam_forward, renderer->cam_up, view);
+    glm_perspective(renderer->fov, renderer->aspect, renderer->znear, renderer->zfar, proj);
+    glm_mat4_mul(proj, view, renderer->scene_data.view_proj);
+
+    //memcpy(renderer->scene_data.view_proj, renderer->camera.view_projection, sizeof(mat4));
 
     for(u8 i=0; i<DM_FRAMES_IN_FLIGHT; i++)
     {
@@ -135,7 +146,6 @@ bool voxel_renderer_init(voxel_renderer *renderer, dm_context *context, dm_arena
 
         if(!create_buffer(context, &renderer->pd[i], DM_BUFFER_TYPE_STORAGE, &renderer->push_data, sizeof(voxel_push_data))) return false;
     }
-
 
     return true;
 }
@@ -171,24 +181,28 @@ bool voxel_renderer_update(voxel_renderer *renderer, dm_context *context)
 
     if(dm_is_key_pressed(context, 65))
     {
-        renderer->camera.position[0] -= 0.1f;
+        renderer->cam_pos[0] -= 0.1f;
     }
     else if(dm_is_key_pressed(context, 68))
     {
-        renderer->camera.position[0] += 0.1f;
+        renderer->cam_pos[0] += 0.1f;
     }
 
     if(dm_is_key_pressed(context, 87))
     {
-        renderer->camera.position[2] -= 0.1f;
+        renderer->cam_pos[2] -= 0.1f;
     }
     else if(dm_is_key_pressed(context, 83))
     {
-        renderer->camera.position[2] += 0.1f;
+        renderer->cam_pos[2] += 0.1f;
     }
 
-    camera_update(&renderer->camera);
-    memcpy(renderer->scene_data.view_proj, renderer->camera.view_projection, sizeof(mat4));
+    mat4 view, proj;
+
+    glm_look(renderer->cam_pos, renderer->cam_forward, renderer->cam_up, view);
+    glm_perspective(renderer->fov, renderer->aspect, renderer->znear, renderer->zfar, proj);
+    glm_mat4_mul(proj, view, renderer->scene_data.view_proj);
+
     dm_render_command_update_buffer(context, renderer->cb[current_frame].cpu, &renderer->scene_data, sizeof(renderer->scene_data));
     dm_render_command_copy_buffer(context, renderer->cb[current_frame].cpu, renderer->cb[current_frame].gpu);
 

@@ -2,7 +2,7 @@
 #define __VOXEL_RENDERER_H__
 
 #include "DarkMatter/dm.h"
-#include "camera.h"
+#include "cglm/cglm.h"
 
 typedef struct voxel_t
 {
@@ -35,17 +35,16 @@ typedef struct voxel_buffer_t
 
 typedef struct voxel_renderer_t
 {
-    voxel *voxels;
-    u32   voxel_count;
-
     voxel_push_data push_data;
     u64 push_address;
 
-    u32 *texture_data;
-    u16 texture_width, texture_height;
-    size_t texture_data_size;
+    vec3 cam_pos;
+    vec3 cam_forward;
+    vec3 cam_up;
+    float fov;
+    float aspect;
+    float znear, zfar;
 
-    perspective_camera camera;
     voxel_scene_data scene_data;
 
     /*****************
@@ -56,6 +55,16 @@ typedef struct voxel_renderer_t
     dm_handle pipeline;
     dm_handle texture;
     dm_handle sampler;
+
+    /*****************
+     * DYNAMIC MEMORY
+     ******************/
+    voxel *voxels;
+    u32   voxel_count;
+
+    u32 *texture_data;
+    u16 texture_width, texture_height;
+    size_t texture_data_size;
 } voxel_renderer;
 
 bool voxel_renderer_init(voxel_renderer *renderer, dm_context *context, dm_arena *arena);

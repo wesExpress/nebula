@@ -6,9 +6,9 @@ project(nebula)
 
 add_subdirectory(lib/DarkMatter)
 
-set(SOURCES main.c application.c voxel_renderer.c camera.c)
+set(SOURCES main.c application.c voxel_renderer.c)
 
-add_definitions(-DCGLM_ALL_UNALIGNED -DCGLM_FORCE_DEPTH_ZERO_TO_ONE -DCGLM_FORCE_LEFT_HAND)
+add_definitions(-DCGLM_FORCE_DEPTH_ZERO_TO_ONE -DCGLM_FORCE_LEFT_HAND)
 
 add_executable(${PROJECT_NAME} ${SOURCES})
 
