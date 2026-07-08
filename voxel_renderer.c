@@ -108,35 +108,42 @@ bool voxel_renderer_init(voxel_renderer *renderer, dm_context *context, dm_arena
     renderer->camera = camera_init(cam_pos, cam_forward, cam_up, fov, aspect_ratio, 0.001f, 100.f);
     memcpy(renderer->scene_data.view_proj, renderer->camera.view_projection, sizeof(mat4));
 
-    if(!create_buffer(context, &renderer->cb, DM_BUFFER_TYPE_STORAGE, &renderer->scene_data, sizeof(renderer->scene_data))) return false;
+    for(u8 i=0; i<DM_FRAMES_IN_FLIGHT; i++)
+    {
+        if(!create_buffer(context, &renderer->cb[i], DM_BUFFER_TYPE_STORAGE, &renderer->scene_data, sizeof(renderer->scene_data))) return false;
+    }
 
     // submit resources
-    dm_handle *resources[] = { &renderer->vb.gpu, &renderer->texture, &renderer->cb.gpu };
+    dm_handle *resources[10] = { &renderer->vb.gpu, &renderer->texture };
+    for(u8 i=0; i<DM_FRAMES_IN_FLIGHT; i++)
+    {
+        resources[2+i] = &renderer->cb[i].gpu;
+    }
     dm_handle *samplers[]  = { &renderer->sampler };
 
-    if(!dm_renderer_upload_resources_to_heap(context, resources, 3)) return false;
+    if(!dm_renderer_upload_resources_to_heap(context, resources, 2+DM_FRAMES_IN_FLIGHT)) return false;
     if(!dm_renderer_upload_samplers_to_heap(context, samplers, 1)) return false;
-
-    LOG_DEBUG("VB heap index: %u", renderer->vb.gpu.heap_index);
-    LOG_DEBUG("CB heap index: %u", renderer->cb.gpu.heap_index);
-    LOG_DEBUG("Texture heap index: %u", renderer->texture.heap_index);
-    LOG_DEBUG("Sampler heap index: %u", renderer->sampler.heap_index);
 
     // push indices
     renderer->push_data.vb_index      = renderer->vb.gpu.heap_index;
     renderer->push_data.texture_index = renderer->texture.heap_index;
-    renderer->push_data.sampler_index = renderer->sampler.heap_index;
-    renderer->push_data.camera_index  = renderer->cb.gpu.heap_index;
+    renderer->push_data.sampler_index = renderer->sampler.heap_index; 
 
-    if(!create_buffer(context, &renderer->pd, DM_BUFFER_TYPE_STORAGE, &renderer->push_data, sizeof(voxel_push_data))) return false;
+    for(u8 i=0; i<DM_FRAMES_IN_FLIGHT; i++)
+    {
+        renderer->push_data.camera_index  = renderer->cb[i].gpu.heap_index;
 
-    renderer->push_address = dm_renderer_get_buffer_address(context, renderer->pd.gpu);
+        if(!create_buffer(context, &renderer->pd[i], DM_BUFFER_TYPE_STORAGE, &renderer->push_data, sizeof(voxel_push_data))) return false;
+    }
+
 
     return true;
 }
 
 bool voxel_renderer_update(voxel_renderer *renderer, dm_context *context)
 {
+    const u8 current_frame = context->renderer.current_frame;
+
     if(dm_window_resized(context))
     {
         const u16 width  = context->window.width;
@@ -181,17 +188,20 @@ bool voxel_renderer_update(voxel_renderer *renderer, dm_context *context)
     }
 
     camera_update(&renderer->camera);
-    //glm_mat4_mul(renderer->camera.projection, renderer->camera.view, renderer->camera.view_projection);
     memcpy(renderer->scene_data.view_proj, renderer->camera.view_projection, sizeof(mat4));
-    dm_render_command_update_buffer(context, renderer->cb.cpu, &renderer->scene_data, sizeof(renderer->scene_data));
-    dm_render_command_copy_buffer(context, renderer->cb.cpu, renderer->cb.gpu);
+    dm_render_command_update_buffer(context, renderer->cb[current_frame].cpu, &renderer->scene_data, sizeof(renderer->scene_data));
+    dm_render_command_copy_buffer(context, renderer->cb[current_frame].cpu, renderer->cb[current_frame].gpu);
 
     return true;
 }
 
 void voxel_renderer_render(voxel_renderer *renderer, dm_context *context, dm_handle swapchain)
 {
+    const u8 current_frame = context->renderer.current_frame;
+
     // render
+    renderer->push_address = dm_renderer_get_buffer_address(context, renderer->pd[current_frame].gpu);
+
     dm_render_command_begin_rendering(context, swapchain, 0.1f, 0.2f, 0.2f, 1.f, 1.f);
 
         dm_render_command_bind_pipeline(context, renderer->pipeline);

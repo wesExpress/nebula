@@ -51,7 +51,7 @@ typedef struct voxel_renderer_t
     /*****************
      * RENDER HANDLES
      ******************/
-    voxel_buffer vb, ib, pd, cb;
+    voxel_buffer vb, ib, pd[DM_FRAMES_IN_FLIGHT], cb[DM_FRAMES_IN_FLIGHT];
 
     dm_handle pipeline;
     dm_handle texture;
