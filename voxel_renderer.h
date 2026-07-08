@@ -2,6 +2,7 @@
 #define __VOXEL_RENDERER_H__
 
 #include "DarkMatter/dm.h"
+
 #include "cglm/cglm.h"
 
 typedef struct voxel_t
@@ -16,6 +17,14 @@ typedef struct voxel_vertex_t
     vec4 color;
 } voxel_vertex;
 
+#define MAX_INSTANCES 8000
+typedef struct voxel_instance_t
+{
+    vec3 position;
+    vec3 scale;
+    vec3 orientation;
+} voxel_instance;
+
 typedef struct voxel_scene_data_t
 {
     mat4 view_proj;
@@ -24,9 +33,10 @@ typedef struct voxel_scene_data_t
 typedef struct voxel_push_data_t
 {
     u32 vb_index;
+    u32 instb_index;
     u32 texture_index;
     u32 sampler_index;
-    u32 camera_index;
+    u32 scene_index;
 } voxel_push_data;
 
 typedef struct voxel_buffer_t
@@ -48,10 +58,13 @@ typedef struct voxel_renderer_t
 
     voxel_scene_data scene_data;
 
+    voxel_instance instances[MAX_INSTANCES];
+
     /*****************
      * RENDER HANDLES
      ******************/
     voxel_buffer vb, ib, pd[DM_FRAMES_IN_FLIGHT], cb[DM_FRAMES_IN_FLIGHT];
+    voxel_buffer instb[DM_FRAMES_IN_FLIGHT];
 
     dm_handle pipeline;
     dm_handle texture;

@@ -91,13 +91,13 @@ bool voxel_renderer_init(voxel_renderer *renderer, dm_context *context, dm_arena
     if(!create_buffer(context, &renderer->ib, DM_BUFFER_TYPE_INDEX,  indices,  sizeof(indices)))  return false;
 
     // camera
-    vec3 cam_pos     = { 0,0,5};
+    vec3 cam_pos     = { 0,0,10};
     vec3 cam_forward = { 0,0,-1 };
     vec3 cam_up      = { 0,1,0 };
 
     renderer->aspect = (float)context->window.width / (float)context->window.height;
-    renderer->fov = 70.f;
-    renderer->znear = 0.01f;
+    renderer->fov = glm_rad(70.f);
+    renderer->znear = 0.1f;
     renderer->zfar = 100.f;
 
     glm_vec3_dup(cam_pos, renderer->cam_pos);
@@ -115,15 +115,44 @@ bool voxel_renderer_init(voxel_renderer *renderer, dm_context *context, dm_arena
         if(!create_buffer(context, &renderer->cb[i], DM_BUFFER_TYPE_STORAGE, &renderer->scene_data, sizeof(renderer->scene_data))) return false;
     }
 
-    // submit resources
-    dm_handle *resources[10] = { &renderer->vb.gpu, &renderer->texture };
+    const float world_size = 20.f;
+    const float half_world = world_size * 0.5f;
+    u32 index = 0;
+    for(u32 x=0; x<world_size; x++)
+    {
+        for(u32 y=0; y<world_size; y++)
+        {
+            for(u32 z=0; z<world_size; z++)
+            {
+                vec3 position = { x - half_world, y - half_world, z - half_world };
+                vec3 scale    = { 0.25f,0.25f,0.25f };
+
+                glm_vec3_dup(position, renderer->instances[index].position);
+                glm_vec3_dup(scale, renderer->instances[index].scale);
+                index++;
+            }
+        }
+    }
+
+    mat4 models[MAX_INSTANCES] = { 0 };
+
     for(u8 i=0; i<DM_FRAMES_IN_FLIGHT; i++)
     {
-        resources[2+i] = &renderer->cb[i].gpu;
+        if(!create_buffer(context, &renderer->instb[i], DM_BUFFER_TYPE_STORAGE, models, sizeof(models))) return false;
     }
-    dm_handle *samplers[]  = { &renderer->sampler };
 
-    if(!dm_renderer_upload_resources_to_heap(context, resources, 2+DM_FRAMES_IN_FLIGHT)) return false;
+    // submit resources
+    dm_handle *resources[10] = { &renderer->vb.gpu, &renderer->texture };
+    u32 resource_count = 2;
+    for(u8 i=0; i<DM_FRAMES_IN_FLIGHT; i++)
+    {
+        resources[resource_count++] = &renderer->cb[i].gpu;
+        resources[resource_count++] = &renderer->instb[i].gpu;
+    }
+
+    dm_handle *samplers[] = { &renderer->sampler };
+
+    if(!dm_renderer_upload_resources_to_heap(context, resources, resource_count)) return false;
     if(!dm_renderer_upload_samplers_to_heap(context, samplers, 1)) return false;
 
     // push indices
@@ -133,7 +162,8 @@ bool voxel_renderer_init(voxel_renderer *renderer, dm_context *context, dm_arena
 
     for(u8 i=0; i<DM_FRAMES_IN_FLIGHT; i++)
     {
-        renderer->push_data.camera_index  = renderer->cb[i].gpu.heap_index;
+        renderer->push_data.scene_index = renderer->cb[i].gpu.heap_index;
+        renderer->push_data.instb_index = renderer->instb[i].gpu.heap_index;
 
         if(!create_buffer(context, &renderer->pd[i], DM_BUFFER_TYPE_STORAGE, &renderer->push_data, sizeof(voxel_push_data))) return false;
     }
@@ -174,6 +204,19 @@ bool voxel_renderer_update(voxel_renderer *renderer, dm_context *context)
     dm_render_command_update_buffer(context, renderer->cb[current_frame].cpu, &renderer->scene_data, sizeof(renderer->scene_data));
     dm_render_command_copy_buffer(context, renderer->cb[current_frame].cpu, renderer->cb[current_frame].gpu);
 
+    mat4 models[MAX_INSTANCES] = { 0 };
+
+    for(u32 i=0; i<MAX_INSTANCES; i++)
+    {
+        glm_mat4_identity(models[i]);
+
+        glm_translate(models[i], renderer->instances[i].position);
+        glm_scale(models[i], renderer->instances[i].scale);
+    }
+
+    dm_render_command_update_buffer(context, renderer->instb[current_frame].cpu, models, sizeof(models));
+    dm_render_command_copy_buffer(context, renderer->instb[current_frame].cpu, renderer->instb[current_frame].gpu);
+
     return true;
 }
 
@@ -189,7 +232,7 @@ void voxel_renderer_render(voxel_renderer *renderer, dm_context *context, dm_han
         dm_render_command_bind_pipeline(context, renderer->pipeline);
         dm_render_command_bind_index_buffer(context, renderer->ib.gpu, 0);
         dm_render_command_push_data(context, &renderer->push_address, sizeof(renderer->push_address));
-        dm_render_command_draw(context, 6, 1);
+        dm_render_command_draw(context, 6, MAX_INSTANCES);
     
     dm_render_command_end_rendering(context, swapchain);
 }

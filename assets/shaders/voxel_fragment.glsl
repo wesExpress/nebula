@@ -11,8 +11,10 @@ layout (location=0) out vec4 fragment_color;
 layout(buffer_reference) readonly buffer constants
 {
     uint vb_index;
+    uint instb_index;
     uint texture_index;
     uint sampler_index;
+    uint scene_index;
 };
 
 layout(push_constant) uniform push_data_t

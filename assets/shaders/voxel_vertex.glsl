@@ -9,9 +9,10 @@ layout (location=1) out vec4 vertex_color;
 layout (buffer_reference) readonly buffer constants
 {
     uint vb_index;
+    uint instb_index;
     uint texture_index;
     uint sampler_index;
-    uint camera_index;
+    uint scene_index;
 };
 
 struct vertex
@@ -21,10 +22,20 @@ struct vertex
     vec4 color;
 };
 
+struct instance
+{
+    mat4 model;
+};
+
 layout (descriptor_heap) readonly buffer vertex_buffer_t
 {
     vertex vertices[];
 } vertex_buffer_heap[];
+
+layout (descriptor_heap) readonly buffer instance_buffer_t
+{
+    instance instances[];
+} instance_buffer_heap[];
 
 layout (descriptor_heap) readonly buffer scene_data
 {
@@ -40,8 +51,9 @@ void main()
 {
     constants c = constants(push_data.c);
 
-    mat4 view_proj = scene_heap[c.camera_index].view_proj;
-    mat4 model = mat4(1.f);
+    mat4 view_proj = scene_heap[c.scene_index].view_proj;
+    mat4 model = instance_buffer_heap[c.instb_index].instances[gl_InstanceIndex].model;
+    //mat4 model = mat4(1.f);
 
     vec4 pos_u = vertex_buffer_heap[c.vb_index].vertices[gl_VertexIndex].pos_u;
     vec4 normal_v = vertex_buffer_heap[c.vb_index].vertices[gl_VertexIndex].normal_v;
