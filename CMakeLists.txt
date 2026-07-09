@@ -6,7 +6,7 @@ project(nebula)
 
 add_subdirectory(lib/DarkMatter)
 
-set(SOURCES main.c application.c voxel_renderer.c)
+set(SOURCES main.c application.c voxel_renderer.c random_gen.c)
 
 add_definitions(-DCGLM_FORCE_DEPTH_ZERO_TO_ONE)
 

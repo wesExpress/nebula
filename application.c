@@ -1,4 +1,5 @@
 #include "application.h"
+#include "random_gen.h"
 
 bool application_init(application *app, size_t size, u16 width, u16 height, const char *title)
 {
@@ -32,6 +33,8 @@ bool application_init(application *app, size_t size, u16 width, u16 height, cons
         .depth_attachment=depth_desc
     };
     if(!dm_renderer_create_render_target(app->context, swapchain_desc, &app->swapchain)) return false;
+
+    random_init();
 
     /*****************
      * VOXEL RENDERER

@@ -5,6 +5,8 @@
 
 #include "vertex_data.h"
 
+#include "random_gen.h"
+
 bool create_buffer(dm_context *context, voxel_buffer *buffer, dm_buffer_type type, void *data, size_t size)
 {
     dm_buffer_desc cpu_desc = {
@@ -105,25 +107,22 @@ bool voxel_renderer_init(voxel_renderer *renderer, dm_context *context, dm_arena
         if(!create_buffer(context, &renderer->cb[i], DM_BUFFER_TYPE_STORAGE, &renderer->scene_data, sizeof(renderer->scene_data))) return false;
     }
 
-    const float world_size = 20.f;
+    const float world_size = 40.f;
     const float half_world = world_size * 0.5f;
-    u32 index = 0;
-    for(u32 x=0; x<world_size; x++)
+    for(u32 i=0; i<MAX_INSTANCES; i++)
     {
-        for(u32 y=0; y<world_size; y++)
-        {
-            for(u32 z=0; z<world_size; z++)
-            {
-                vec3 position = { x - half_world, y - half_world, z - half_world };
-                vec3 scale    = { 0.25f,0.25f,0.25f };
+        vec3 position = {
+            random_float() * world_size - half_world,
+            random_float() * world_size - half_world,
+            random_float() * world_size - half_world
+        };
 
-                glm_vec3_dup(position, renderer->instances[index].position);
-                glm_vec3_dup(scale, renderer->instances[index].scale);
-                glm_quatv(renderer->instances[index].orientation, 0, (vec3){ 0,1,0 });
+        vec3 scale = { random_float(), random_float(), random_float() };
+        vec3 axis = { random_float(), random_float(), random_float() };
 
-                index++;
-            }
-        }
+        glm_vec3_dup(position, renderer->instances[i].position);
+        glm_vec3_dup(scale, renderer->instances[i].scale);
+        glm_quatv(renderer->instances[i].orientation, random_float() * 3.14f * 2.f, axis);
     }
 
     mat4 models[MAX_INSTANCES][2] = { 0 };
@@ -200,18 +199,30 @@ bool voxel_renderer_update(voxel_renderer *renderer, dm_context *context)
 
     for(u32 i=0; i<MAX_INSTANCES; i++)
     {
+        voxel_instance instance = renderer->instances[i];
+
+        float s = sqrtf(1 - instance.orientation[3] * instance.orientation[3]);
+        vec3 axis = {
+            instance.orientation[0] / s,
+            instance.orientation[1] / s,
+            instance.orientation[2] / s,
+        };
+
         versor delta;
-        glm_quatv(delta, 0.05f, (vec3){ 1,1,0 });
-        glm_quat_mul(renderer->instances[i].orientation, delta, renderer->instances[i].orientation);
+        glm_quatv(delta, 0.05f, axis);
+        glm_quat_mul(delta, instance.orientation, instance.orientation);
+        glm_quat_normalize(instance.orientation);
 
         glm_mat4_identity(models[i][0]);
 
-        glm_translate(models[i][0], renderer->instances[i].position);
-        glm_quat_rotate(models[i][0], renderer->instances[i].orientation, models[i][0]);
-        glm_scale(models[i][0], renderer->instances[i].scale);
+        glm_translate(models[i][0], instance.position);
+        glm_quat_rotate(models[i][0], instance.orientation, models[i][0]);
+        glm_scale(models[i][0], instance.scale);
 
         glm_mat4_inv(models[i][0], models[i][1]);
         glm_mat4_transpose(models[i][1]);
+
+        renderer->instances[i] = instance;
     }
 
     dm_render_command_update_buffer(context, renderer->instb[current_frame].cpu, models, sizeof(models));
