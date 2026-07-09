@@ -12,5 +12,5 @@ add_definitions(-DCGLM_FORCE_DEPTH_ZERO_TO_ONE)
 
 add_executable(${PROJECT_NAME} ${SOURCES})
 
-target_include_directories(${PROJECT_NAME} PUBLIC lib/ lib/cglm/include)
+target_include_directories(${PROJECT_NAME} PUBLIC lib lib/cglm/include)
 target_link_libraries(${PROJECT_NAME} PUBLIC DarkMatter)

@@ -28,9 +28,10 @@ bool application_init(application *app, size_t size, u16 width, u16 height, cons
         .store_op=DM_RENDER_ATTACHMENT_STORE_OP_DONT_CARE
     };
     dm_render_target_desc swapchain_desc = {
-        .type=DM_RENDER_TARGET_TYPE_SWAPCHAIN,
         .color_attachment=color_desc,
-        .depth_attachment=depth_desc
+        .depth_attachment=depth_desc,
+        .swapchain=true,
+        .depth=true
     };
     if(!dm_renderer_create_render_target(app->context, swapchain_desc, &app->swapchain)) return false;
 
