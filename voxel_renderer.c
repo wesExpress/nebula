@@ -201,15 +201,8 @@ bool voxel_renderer_update(voxel_renderer *renderer, dm_context *context)
     {
         voxel_instance instance = renderer->instances[i];
 
-        float s = sqrtf(1 - instance.orientation[3] * instance.orientation[3]);
-        vec3 axis = {
-            instance.orientation[0] / s,
-            instance.orientation[1] / s,
-            instance.orientation[2] / s,
-        };
-
         versor delta;
-        glm_quatv(delta, 0.05f, axis);
+        glm_quatv(delta, 0.05f, (vec3){ 1,1,0 });
         glm_quat_mul(delta, instance.orientation, instance.orientation);
         glm_quat_normalize(instance.orientation);
 
