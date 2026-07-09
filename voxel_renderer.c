@@ -3,6 +3,8 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image/stb_image.h"
 
+#include "vertex_data.h"
+
 bool create_buffer(dm_context *context, voxel_buffer *buffer, dm_buffer_type type, void *data, size_t size)
 {
     dm_buffer_desc cpu_desc = {
@@ -75,20 +77,8 @@ bool voxel_renderer_init(voxel_renderer *renderer, dm_context *context, dm_arena
     if(!dm_renderer_create_sampler(context, sampler_desc, &renderer->sampler)) return false;
 
     // buffers
-    voxel_vertex vertices[] = {
-        { { -1,-1,0,  0 }, { 0,0,1,  0 }, { 1,0,0,1 } },
-        { { -1, 1,0,  0 }, { 0,0,1,  1 }, { 0,1,0,1 } },
-        { {  1, 1,0,  1 }, { 0,0,1,  1 }, { 0,0,1,1 } },
-        { {  1,-1,0,  1 }, { 0,0,1,  0 }, { 0,1,1,1 } },
-    };
-
-    u32 indices[] = {
-        0,1,2,
-        3,0,2
-    };
-
-    if(!create_buffer(context, &renderer->vb, DM_BUFFER_TYPE_VERTEX, vertices, sizeof(vertices))) return false;
-    if(!create_buffer(context, &renderer->ib, DM_BUFFER_TYPE_INDEX,  indices,  sizeof(indices)))  return false;
+    if(!create_buffer(context, &renderer->vb, DM_BUFFER_TYPE_VERTEX, cube_vertices, sizeof(cube_vertices))) return false;
+    if(!create_buffer(context, &renderer->ib, DM_BUFFER_TYPE_INDEX,  cube_indices,  sizeof(cube_indices)))  return false;
 
     // camera
     vec3 cam_pos     = { 0,0,10};
@@ -232,7 +222,7 @@ void voxel_renderer_render(voxel_renderer *renderer, dm_context *context, dm_han
         dm_render_command_bind_pipeline(context, renderer->pipeline);
         dm_render_command_bind_index_buffer(context, renderer->ib.gpu, 0);
         dm_render_command_push_data(context, &renderer->push_address, sizeof(renderer->push_address));
-        dm_render_command_draw(context, 6, MAX_INSTANCES);
+        dm_render_command_draw(context, 36, MAX_INSTANCES);
     
     dm_render_command_end_rendering(context, swapchain);
 }

@@ -60,6 +60,9 @@ typedef struct voxel_renderer_t
 
     voxel_instance instances[MAX_INSTANCES];
 
+    double frame_time;
+    u32 frame_count;
+
     /*****************
      * RENDER HANDLES
      ******************/
