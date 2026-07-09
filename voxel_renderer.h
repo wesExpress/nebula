@@ -22,7 +22,7 @@ typedef struct voxel_instance_t
 {
     vec3 position;
     vec3 scale;
-    vec3 orientation;
+    versor orientation;
 } voxel_instance;
 
 typedef struct voxel_scene_data_t

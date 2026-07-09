@@ -119,12 +119,14 @@ bool voxel_renderer_init(voxel_renderer *renderer, dm_context *context, dm_arena
 
                 glm_vec3_dup(position, renderer->instances[index].position);
                 glm_vec3_dup(scale, renderer->instances[index].scale);
+                glm_quatv(renderer->instances[index].orientation, 0, (vec3){ 0,1,0 });
+
                 index++;
             }
         }
     }
 
-    mat4 models[MAX_INSTANCES] = { 0 };
+    mat4 models[MAX_INSTANCES][2] = { 0 };
 
     for(u8 i=0; i<DM_FRAMES_IN_FLIGHT; i++)
     {
@@ -194,14 +196,22 @@ bool voxel_renderer_update(voxel_renderer *renderer, dm_context *context)
     dm_render_command_update_buffer(context, renderer->cb[current_frame].cpu, &renderer->scene_data, sizeof(renderer->scene_data));
     dm_render_command_copy_buffer(context, renderer->cb[current_frame].cpu, renderer->cb[current_frame].gpu);
 
-    mat4 models[MAX_INSTANCES] = { 0 };
+    mat4 models[MAX_INSTANCES][2] = { 0 };
 
     for(u32 i=0; i<MAX_INSTANCES; i++)
     {
-        glm_mat4_identity(models[i]);
+        versor delta;
+        glm_quatv(delta, 0.05f, (vec3){ 1,1,0 });
+        glm_quat_mul(renderer->instances[i].orientation, delta, renderer->instances[i].orientation);
 
-        glm_translate(models[i], renderer->instances[i].position);
-        glm_scale(models[i], renderer->instances[i].scale);
+        glm_mat4_identity(models[i][0]);
+
+        glm_translate(models[i][0], renderer->instances[i].position);
+        glm_quat_rotate(models[i][0], renderer->instances[i].orientation, models[i][0]);
+        glm_scale(models[i][0], renderer->instances[i].scale);
+
+        glm_mat4_inv(models[i][0], models[i][1]);
+        glm_mat4_transpose(models[i][1]);
     }
 
     dm_render_command_update_buffer(context, renderer->instb[current_frame].cpu, models, sizeof(models));
@@ -217,7 +227,7 @@ void voxel_renderer_render(voxel_renderer *renderer, dm_context *context, dm_han
     // render
     renderer->push_address = dm_renderer_get_buffer_address(context, renderer->pd[current_frame].gpu);
 
-    dm_render_command_begin_rendering(context, swapchain, 0.1f, 0.2f, 0.2f, 1.f, 1.f);
+    dm_render_command_begin_rendering(context, swapchain, 0.f,0.f,0.f,1.f, 1.f);
 
         dm_render_command_bind_pipeline(context, renderer->pipeline);
         dm_render_command_bind_index_buffer(context, renderer->ib.gpu, 0);

@@ -52,6 +52,7 @@ void application_run(application *app)
 {
     while(dm_is_running(app->context))
     {
+
         /**************
          * BEGIN FRAME
          ***************/
@@ -72,6 +73,7 @@ void application_run(application *app)
          * END FRAME
          *************/
         dm_update_end(app->context);
+
     }
 }
 

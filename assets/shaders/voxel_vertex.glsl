@@ -5,6 +5,8 @@
 
 layout (location=0) out vec2 vertex_uv;
 layout (location=1) out vec4 vertex_color;
+layout (location=2) out vec3 vertex_normal;
+layout (location=3) out vec3 vertex_position;
 
 layout (buffer_reference) readonly buffer constants
 {
@@ -17,14 +19,17 @@ layout (buffer_reference) readonly buffer constants
 
 struct vertex
 {
-    vec4 pos_u;
-    vec4 normal_v;
+    vec3 position;
+    float u;
+    vec3 normal;
+    float v;
     vec4 color;
 };
 
 struct instance
 {
     mat4 model;
+    mat4 inv_model;
 };
 
 layout (descriptor_heap) readonly buffer vertex_buffer_t
@@ -52,20 +57,24 @@ void main()
     constants c = constants(push_data.c);
 
     mat4 view_proj = scene_heap[c.scene_index].view_proj;
-    mat4 model = instance_buffer_heap[c.instb_index].instances[gl_InstanceIndex].model;
-    //mat4 model = mat4(1.f);
+    mat4 model     = instance_buffer_heap[c.instb_index].instances[gl_InstanceIndex].model;
+    mat4 inv_model = instance_buffer_heap[c.instb_index].instances[gl_InstanceIndex].inv_model;
 
-    vec4 pos_u = vertex_buffer_heap[c.vb_index].vertices[gl_VertexIndex].pos_u;
-    vec4 normal_v = vertex_buffer_heap[c.vb_index].vertices[gl_VertexIndex].normal_v;
-    vec4 color = vertex_buffer_heap[c.vb_index].vertices[gl_VertexIndex].color;
+    vec3 position = vertex_buffer_heap[c.vb_index].vertices[gl_VertexIndex].position;
+    vec3 normal   = vertex_buffer_heap[c.vb_index].vertices[gl_VertexIndex].normal;
+    vec4 color    = vertex_buffer_heap[c.vb_index].vertices[gl_VertexIndex].color;
 
-    vec4 position = vec4(pos_u.xyz, 1);
-    position = model * position;
-    position = view_proj * position;
+    float u = vertex_buffer_heap[c.vb_index].vertices[gl_VertexIndex].u;
+    float v = vertex_buffer_heap[c.vb_index].vertices[gl_VertexIndex].v;
 
-    gl_Position = position;
+    vec4 p = model * vec4(position, 1);
 
-    vertex_uv = vec2(pos_u.w, normal_v.w);
+    vertex_position = p.xyz;
+    gl_Position = view_proj * p; 
+
+    vertex_uv = vec2(u,v);
 
     vertex_color = color;
+
+    vertex_normal = (inv_model * vec4(normal, 0)).xyz;
 }
