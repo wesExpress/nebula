@@ -145,22 +145,29 @@ bool voxel_renderer_init(voxel_renderer *renderer, dm_context *context, dm_arena
     if(!dm_renderer_upload_samplers_to_heap(context, samplers, 1)) return false;
 
     // push indices
-    renderer->push_data.vb_index      = renderer->vb.heap_index;
-    renderer->push_data.texture_index = renderer->texture.heap_index;
-    renderer->push_data.sampler_index = renderer->sampler.heap_index; 
+    renderer->fragment_data.texture_index = renderer->texture.heap_index;
+    renderer->fragment_data.sampler_index = renderer->sampler.heap_index; 
+
+    dm_buffer_desc fpd_desc = {
+        .type=DM_BUFFER_TYPE_STORAGE,
+        .size=sizeof(fragment_push_data),
+        .data=&renderer->fragment_data
+    };
+    if(!dm_renderer_create_buffer(context, fpd_desc, &renderer->fpd)) return false;
+    renderer->vertex_data.vb_index      = renderer->vb.heap_index;
 
     for(u8 i=0; i<DM_FRAMES_IN_FLIGHT; i++)
     {
-        renderer->push_data.scene_index = renderer->cb[i].heap_index;
-        renderer->push_data.instb_index = renderer->instb[i].heap_index;
+        renderer->vertex_data.scene_index = renderer->cb[i].heap_index;
+        renderer->vertex_data.instb_index = renderer->instb[i].heap_index;
 
-        dm_buffer_desc pd_desc = {
+        dm_buffer_desc vpd_desc = {
             .type=DM_BUFFER_TYPE_STORAGE,
-            .size=sizeof(voxel_push_data),
-            .data=&renderer->push_data
+            .size=sizeof(vertex_push_data),
+            .data=&renderer->vertex_data
         };
 
-        if(!dm_renderer_create_buffer(context, pd_desc, &renderer->pd[i])) return false;
+        if(!dm_renderer_create_buffer(context, vpd_desc, &renderer->vpd[i])) return false;
     }
 
     return true;
@@ -231,13 +238,16 @@ void voxel_renderer_render(voxel_renderer *renderer, dm_context *context, dm_han
     const u8 current_frame = context->renderer.current_frame;
 
     // render
-    renderer->push_address = dm_renderer_get_buffer_address(context, renderer->pd[current_frame]);
+    renderer->push_data.vertex_data_address   = dm_renderer_get_buffer_address(context, renderer->vpd[current_frame]);
+    renderer->push_data.fragment_data_address = dm_renderer_get_buffer_address(context, renderer->fpd);
+
+    dm_render_command_update_buffer(context, renderer->pd[current_frame], &renderer->push_data, sizeof(renderer->push_data)); 
 
     dm_render_command_begin_rendering(context, swapchain, 0.f,0.f,0.f,1.f, 1.f);
 
         dm_render_command_bind_pipeline(context, renderer->pipeline);
         dm_render_command_bind_index_buffer(context, renderer->ib, 0);
-        dm_render_command_push_data(context, &renderer->push_address, sizeof(renderer->push_address));
+        dm_render_command_push_data(context, &renderer->push_data, sizeof(renderer->push_data));
         dm_render_command_draw(context, 36, MAX_INSTANCES);
     
     dm_render_command_end_rendering(context, swapchain);

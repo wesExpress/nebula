@@ -30,19 +30,30 @@ typedef struct voxel_scene_data_t
     mat4 view_proj;
 } voxel_scene_data;
 
-typedef struct voxel_push_data_t
+typedef struct vertex_push_data_t
 {
     u32 vb_index;
     u32 instb_index;
+    u32 scene_index;
+} vertex_push_data;
+
+typedef struct fragment_push_data_t
+{
     u32 texture_index;
     u32 sampler_index;
-    u32 scene_index;
+} fragment_push_data;
+
+typedef struct voxel_push_data_t
+{
+    u64 vertex_data_address;
+    u64 fragment_data_address;
 } voxel_push_data;
 
 typedef struct voxel_renderer_t
 {
     voxel_push_data push_data;
-    u64 push_address;
+    vertex_push_data vertex_data;
+    fragment_push_data fragment_data;
 
     vec3 cam_pos;
     vec3 cam_forward;
@@ -61,7 +72,7 @@ typedef struct voxel_renderer_t
     /*****************
      * RENDER HANDLES
      ******************/
-    dm_handle vb, ib, pd[DM_FRAMES_IN_FLIGHT], cb[DM_FRAMES_IN_FLIGHT];
+    dm_handle vb, ib, vpd[DM_FRAMES_IN_FLIGHT], fpd, pd[DM_FRAMES_IN_FLIGHT], cb[DM_FRAMES_IN_FLIGHT];
     dm_handle instb[DM_FRAMES_IN_FLIGHT];
 
     dm_handle pipeline;

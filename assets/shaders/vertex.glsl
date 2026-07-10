@@ -8,13 +8,13 @@ layout (location=1) out vec4 vertex_color;
 layout (location=2) out vec3 vertex_normal;
 layout (location=3) out vec3 vertex_position;
 
-layout (buffer_reference) readonly buffer constants
+layout (buffer_reference) readonly buffer vertex_constants
 {
     uint vb_index;
     uint instb_index;
+    uint scene_index;
     uint texture_index;
     uint sampler_index;
-    uint scene_index;
 };
 
 struct vertex

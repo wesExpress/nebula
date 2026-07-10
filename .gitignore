@@ -1,3 +1,6 @@
 build/*
 lib/cglm/*
 .cache/*
+
+*.air
+*.metallib
