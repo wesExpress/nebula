@@ -39,11 +39,6 @@ typedef struct voxel_push_data_t
     u32 scene_index;
 } voxel_push_data;
 
-typedef struct voxel_buffer_t
-{
-    dm_handle cpu, gpu;
-} voxel_buffer;
-
 typedef struct voxel_renderer_t
 {
     voxel_push_data push_data;
@@ -66,8 +61,8 @@ typedef struct voxel_renderer_t
     /*****************
      * RENDER HANDLES
      ******************/
-    voxel_buffer vb, ib, pd[DM_FRAMES_IN_FLIGHT], cb[DM_FRAMES_IN_FLIGHT];
-    voxel_buffer instb[DM_FRAMES_IN_FLIGHT];
+    dm_handle vb, ib, pd[DM_FRAMES_IN_FLIGHT], cb[DM_FRAMES_IN_FLIGHT];
+    dm_handle instb[DM_FRAMES_IN_FLIGHT];
 
     dm_handle pipeline;
     dm_handle texture;
