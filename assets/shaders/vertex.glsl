@@ -8,14 +8,6 @@ layout (location=1) out vec4 vertex_color;
 layout (location=2) out vec3 vertex_normal;
 layout (location=3) out vec3 vertex_position;
 
-layout (buffer_reference) readonly buffer vertex_constants
-{
-    uint vb_index;
-    uint instb_index;
-    uint scene_index;
-    uint texture_index;
-    uint sampler_index;
-};
 
 struct vertex
 {
@@ -47,25 +39,27 @@ layout (descriptor_heap) readonly buffer scene_data
     mat4 view_proj;
 } scene_heap[];
 
-layout (push_constant) uniform push_data_t
+layout (push_constant) uniform push_data_t 
 {
-    constants c;
+    uint vb_index;
+    uint instb_index;
+    uint scene_index;
+    uint texture_index;
+    uint sampler_index;
 } push_data;
 
 void main()
 {
-    constants c = constants(push_data.c);
+    mat4 view_proj = scene_heap[push_data.scene_index].view_proj;
+    mat4 model     = instance_buffer_heap[push_data.instb_index].instances[gl_InstanceIndex].model;
+    mat4 inv_model = instance_buffer_heap[push_data.instb_index].instances[gl_InstanceIndex].inv_model;
 
-    mat4 view_proj = scene_heap[c.scene_index].view_proj;
-    mat4 model     = instance_buffer_heap[c.instb_index].instances[gl_InstanceIndex].model;
-    mat4 inv_model = instance_buffer_heap[c.instb_index].instances[gl_InstanceIndex].inv_model;
+    vec3 position = vertex_buffer_heap[push_data.vb_index].vertices[gl_VertexIndex].position;
+    vec3 normal   = vertex_buffer_heap[push_data.vb_index].vertices[gl_VertexIndex].normal;
+    vec4 color    = vertex_buffer_heap[push_data.vb_index].vertices[gl_VertexIndex].color;
 
-    vec3 position = vertex_buffer_heap[c.vb_index].vertices[gl_VertexIndex].position;
-    vec3 normal   = vertex_buffer_heap[c.vb_index].vertices[gl_VertexIndex].normal;
-    vec4 color    = vertex_buffer_heap[c.vb_index].vertices[gl_VertexIndex].color;
-
-    float u = vertex_buffer_heap[c.vb_index].vertices[gl_VertexIndex].u;
-    float v = vertex_buffer_heap[c.vb_index].vertices[gl_VertexIndex].v;
+    float u = vertex_buffer_heap[push_data.vb_index].vertices[gl_VertexIndex].u;
+    float v = vertex_buffer_heap[push_data.vb_index].vertices[gl_VertexIndex].v;
 
     vec4 p = model * vec4(position, 1);
 
