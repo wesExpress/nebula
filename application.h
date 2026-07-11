@@ -16,7 +16,7 @@ typedef struct application_t
     /************
      * RENDERING 
      *************/
-    dm_handle swapchain;
+    dm_resource swapchain;
 } application;
 
 bool application_init(application *app, size_t size, u16 width, u16 height, const char *title);

@@ -4,9 +4,9 @@ using namespace metal;
 
 struct vertex_in
 {
-    float3 position;
+    packed_float3 position;
     float  u;
-    float3 normal;
+    packed_float3 normal;
     float  v;
     float4 color;
 };
@@ -15,6 +15,30 @@ struct instance
 {
     float4x4 model;
     float4x4 inv_model;
+};
+
+struct scene_data
+{
+    float4x4 view_proj;
+};
+
+struct resources
+{
+    device vertex_in *vertices;
+    device instance *instances;
+    device scene_data *constants;
+    texture2d<float> texture;
+    sampler          s;
+};
+
+struct argument_buffer
+{
+    //device resources *addresses;
+    device vertex_in *vertices;
+    device instance *instances;
+    device scene_data *constants;
+    texture2d<float> texture;
+    sampler          s;
 };
 
 struct vertex_out
@@ -26,33 +50,16 @@ struct vertex_out
     float2 uv;
 };
 
-struct scene_data
-{
-    float4x4 view_proj;
-};
-
-struct vertex_push_data
-{
-    device vertex_in *vertices;
-    device instance *instances;
-    device scene_data *constants;
-};
-
-struct argument_buffer
-{
-    device vertex_push_data *vpd;
-};
-
-vertex vertex_out v_main(constant argument_buffer& addresses [[buffer(0)]], uint vid [[vertex_id]], uint instid [[instance_id]])
+vertex vertex_out v_main(constant argument_buffer &arg[[buffer(0)]], uint vid [[vertex_id]], uint instid [[instance_id]])
 {
     vertex_out v_out;
 
-    vertex_in v   = addresses.vpd->vertices[vid];
-    instance inst = addresses.vpd->instances[instid];
+    vertex_in v   = arg.vertices[vid];
+    instance inst = arg.instances[instid];
 
     float4x4 model     = inst.model;
     float4x4 inv_model = inst.inv_model;
-    float4x4 view_proj = addresses.vpd->constants->view_proj;
+    float4x4 view_proj = arg.constants->view_proj;
 
     v_out.world_pos = (model * float4(v.position, 1)).xyz;
     v_out.position  = view_proj * model * float4(v.position, 1);

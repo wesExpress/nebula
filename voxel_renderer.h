@@ -30,31 +30,17 @@ typedef struct voxel_scene_data_t
     mat4 view_proj;
 } voxel_scene_data;
 
-typedef struct vertex_push_data_t
-{
-    u32 vb_index;
-    u32 instb_index;
-    u32 scene_index;
-} vertex_push_data;
-
-typedef struct fragment_push_data_t
-{
-    u32 texture_index;
-    u32 sampler_index;
-} fragment_push_data;
-
 typedef struct voxel_push_data_t
 {
-    u64 vertex_data_address;
-    u64 fragment_data_address;
+    u64 vb;
+    u64 instb;
+    u64 scene;
+    u64 texture;
+    u64 sampler;
 } voxel_push_data;
 
 typedef struct voxel_renderer_t
 {
-    voxel_push_data push_data;
-    vertex_push_data vertex_data;
-    fragment_push_data fragment_data;
-
     vec3 cam_pos;
     vec3 cam_forward;
     vec3 cam_up;
@@ -72,12 +58,13 @@ typedef struct voxel_renderer_t
     /*****************
      * RENDER HANDLES
      ******************/
-    dm_handle vb, ib, vpd[DM_FRAMES_IN_FLIGHT], fpd, pd[DM_FRAMES_IN_FLIGHT], cb[DM_FRAMES_IN_FLIGHT];
-    dm_handle instb[DM_FRAMES_IN_FLIGHT];
+    dm_resource vb, ib, pd[DM_FRAMES_IN_FLIGHT], cb[DM_FRAMES_IN_FLIGHT];
+    dm_resource instb[DM_FRAMES_IN_FLIGHT];
+    dm_resource texture, sampler;
 
-    dm_handle pipeline;
-    dm_handle texture;
-    dm_handle sampler;
+    dm_pipeline pipeline;
+
+    u64 push_address[DM_FRAMES_IN_FLIGHT];
 
     /*****************
      * DYNAMIC MEMORY
@@ -88,6 +75,6 @@ typedef struct voxel_renderer_t
 
 bool voxel_renderer_init(voxel_renderer *renderer, dm_context *context, dm_arena *arena);
 bool voxel_renderer_update(voxel_renderer *renderer, dm_context *context);
-void voxel_renderer_render(voxel_renderer *renderer, dm_context *context, dm_handle swapchain);
+void voxel_renderer_render(voxel_renderer *renderer, dm_context *context, dm_resource swapchain);
 
 #endif // __VOXEL_RENDERER_H__
