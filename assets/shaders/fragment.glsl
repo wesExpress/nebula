@@ -29,5 +29,5 @@ void main()
 
     vec3 dir = normalize(vec3(0,0,0) - vertex_position);
 
-    fragment_color.rgb *= max(dot(dir, normalize(vertex_normal)), 0);
+    fragment_color.rgb *= max(dot(dir, normalize(vertex_normal)), 0.f);
 }
