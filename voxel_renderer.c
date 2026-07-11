@@ -18,8 +18,6 @@ bool voxel_renderer_init(voxel_renderer *renderer, dm_context *context, dm_arena
         .entry="f_main"
     };
 
-    dm_raster_shader shaders[] = { vertex_shader, fragment_shader };
-
     dm_raster_pipe_desc pipe_desc = {
         .shaders[DM_RASTER_SHADER_STAGE_VERTEX]=vertex_shader,
         .shaders[DM_RASTER_SHADER_STAGE_FRAGMENT]=fragment_shader,
@@ -95,10 +93,6 @@ bool voxel_renderer_init(voxel_renderer *renderer, dm_context *context, dm_arena
         .size=sizeof(renderer->scene_data),
         .data=&renderer->scene_data
     };
-    for(u8 i=0; i<DM_FRAMES_IN_FLIGHT; i++)
-    {
-        if(!dm_renderer_create_buffer(context, cb_desc, &renderer->cb[i])) return false;
-    }
 
     const float world_size = 40.f;
     const float half_world = world_size * 0.5f;
@@ -113,9 +107,9 @@ bool voxel_renderer_init(voxel_renderer *renderer, dm_context *context, dm_arena
         vec3 scale = { random_float(), random_float(), random_float() };
         vec3 axis = { random_float(), random_float(), random_float() };
 
-        glm_vec3_dup(position, renderer->instances[i].position);
-        glm_vec3_dup(scale, renderer->instances[i].scale);
-        glm_quatv(renderer->instances[i].orientation, random_float() * 3.14f * 2.f, axis);
+        glm_vec3_dup(position, renderer->positions[i]);
+        glm_vec3_dup(scale, renderer->scales[i]);
+        glm_quatv(renderer->orientations[i], random_float() * 3.14f * 2.f, axis);
     }
 
     mat4 models[MAX_INSTANCES][2] = { 0 };
@@ -127,48 +121,20 @@ bool voxel_renderer_init(voxel_renderer *renderer, dm_context *context, dm_arena
     };
     for(u8 i=0; i<DM_FRAMES_IN_FLIGHT; i++)
     {
+        if(!dm_renderer_create_buffer(context, cb_desc, &renderer->cb[i])) return false;
         if(!dm_renderer_create_buffer(context, instb_desc, &renderer->instb[i])) return false;
     }
 
-    // push indices 
-    for(u32 i=0; i<DM_FRAMES_IN_FLIGHT; i++)
-    {
-        voxel_push_data push = {
-            .vb=renderer->vb.gpu_index,
-            .instb=renderer->instb[i].gpu_index,
-            .scene=renderer->cb[i].gpu_index,
-            .texture=renderer->texture.gpu_index,
-            .sampler=renderer->sampler.gpu_index
-        };
-
-        dm_buffer_desc pd_desc = {
-            .type=DM_BUFFER_TYPE_STORAGE,
-            .size=sizeof(voxel_push_data),
-            .data=&push
-        };
-
-        if(!dm_renderer_create_buffer(context, pd_desc, &renderer->pd[i])) return false;
-    }
-
     // submit resources
-    dm_resource *resources[100] = { &renderer->vb, &renderer->ib, &renderer->texture };
-    u32 resource_count = 3;
+    dm_resource *resources[100] = { &renderer->vb, &renderer->ib, &renderer->texture, &renderer->sampler };
+    u32 resource_count = 4;
     for(u8 i=0; i<DM_FRAMES_IN_FLIGHT; i++)
     {
         resources[resource_count++] = &renderer->cb[i];
         resources[resource_count++] = &renderer->instb[i];
-        resources[resource_count++] = &renderer->pd[i];
     }
-
-    dm_resource *samplers[] = { &renderer->sampler };
 
     if(!dm_renderer_upload_resources_to_heap(context, resources, resource_count)) return false;
-    if(!dm_renderer_upload_samplers_to_heap(context, samplers, 1)) return false;
-
-    for(u8 i=0; i<DM_FRAMES_IN_FLIGHT; i++)
-    {
-        renderer->push_address[i] = dm_renderer_get_buffer_address(context, renderer->pd[i]);
-    }
 
     return true;
 }
@@ -209,23 +175,19 @@ bool voxel_renderer_update(voxel_renderer *renderer, dm_context *context)
 
     for(u32 i=0; i<MAX_INSTANCES; i++)
     {
-        voxel_instance instance = renderer->instances[i];
-
         versor delta;
         glm_quatv(delta, 0.05f, (vec3){ 1,1,0 });
-        glm_quat_mul(delta, instance.orientation, instance.orientation);
-        glm_quat_normalize(instance.orientation);
+        glm_quat_mul(delta, renderer->orientations[i], renderer->orientations[i]);
+        glm_quat_normalize(renderer->orientations[i]);
 
         glm_mat4_identity(models[i][0]);
 
-        glm_translate(models[i][0], instance.position);
-        glm_quat_rotate(models[i][0], instance.orientation, models[i][0]);
-        glm_scale(models[i][0], instance.scale);
+        glm_translate(models[i][0], renderer->positions[i]);
+        glm_quat_rotate(models[i][0], renderer->orientations[i], models[i][0]);
+        glm_scale(models[i][0], renderer->scales[i]);
 
         glm_mat4_inv(models[i][0], models[i][1]);
         glm_mat4_transpose(models[i][1]);
-
-        renderer->instances[i] = instance;
     }
 
     dm_render_command_update_buffer(context, renderer->instb[current_frame], models, sizeof(models));
@@ -245,6 +207,7 @@ void voxel_renderer_render(voxel_renderer *renderer, dm_context *context, dm_res
         renderer->texture,
         renderer->sampler,
     };
+
     dm_render_command_begin_rendering(context, swapchain, 0.f,0.f,0.f,1.f, 1.f);
 
         dm_render_command_bind_pipeline(context, renderer->pipeline);
