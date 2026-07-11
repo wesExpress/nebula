@@ -11,7 +11,7 @@ int main(void)
 
     application app = { 0 };
 
-    if(application_init(&app, arena_size, 400, 400, "nebula"))
+    if(application_init(&app, arena_size, 1080, 720, "nebula"))
     {
         application_run(&app);
     }
