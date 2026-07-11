@@ -50,12 +50,12 @@ struct vertex_out
     float2 uv;
 };
 
-vertex vertex_out v_main(constant argument_buffer &arg[[buffer(0)]], uint vid [[vertex_id]], uint instid [[instance_id]])
+vertex vertex_out v_main(constant argument_buffer &arg[[buffer(0)]], uint v_id [[vertex_id]], uint inst_id [[instance_id]])
 {
     vertex_out v_out;
 
-    vertex_in v   = arg.vertices[vid];
-    instance inst = arg.instances[instid];
+    vertex_in v   = arg.vertices[v_id];
+    instance inst = arg.instances[inst_id];
 
     float4x4 model     = inst.model;
     float4x4 inv_model = inst.inv_model;
@@ -63,7 +63,7 @@ vertex vertex_out v_main(constant argument_buffer &arg[[buffer(0)]], uint vid [[
 
     v_out.world_pos = (model * float4(v.position, 1)).xyz;
     v_out.position  = view_proj * model * float4(v.position, 1);
-    v_out.normal    = (inv_model * float4(v.position, 0)).xyz;
+    v_out.normal    = (inv_model * float4(v.normal, 0)).xyz;
     v_out.uv        = float2(v.u, v.v);
     v_out.color     = v.color;
 

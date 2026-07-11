@@ -18,26 +18,11 @@ typedef struct voxel_vertex_t
 } voxel_vertex;
 
 #define MAX_INSTANCES 8000
-typedef struct voxel_instance_t
-{
-    vec3 position;
-    vec3 scale;
-    versor orientation;
-} voxel_instance;
 
 typedef struct voxel_scene_data_t
 {
     mat4 view_proj;
 } voxel_scene_data;
-
-typedef struct voxel_push_data_t
-{
-    u64 vb;
-    u64 instb;
-    u64 scene;
-    u64 texture;
-    u64 sampler;
-} voxel_push_data;
 
 typedef struct voxel_renderer_t
 {
@@ -50,7 +35,9 @@ typedef struct voxel_renderer_t
 
     voxel_scene_data scene_data;
 
-    voxel_instance instances[MAX_INSTANCES];
+    vec3 positions[MAX_INSTANCES];
+    vec3 scales[MAX_INSTANCES];
+    versor orientations[MAX_INSTANCES];
 
     double frame_time;
     u32 frame_count;
@@ -58,13 +45,11 @@ typedef struct voxel_renderer_t
     /*****************
      * RENDER HANDLES
      ******************/
-    dm_resource vb, ib, pd[DM_FRAMES_IN_FLIGHT], cb[DM_FRAMES_IN_FLIGHT];
+    dm_resource vb, ib, cb[DM_FRAMES_IN_FLIGHT];
     dm_resource instb[DM_FRAMES_IN_FLIGHT];
     dm_resource texture, sampler;
 
     dm_pipeline pipeline;
-
-    u64 push_address[DM_FRAMES_IN_FLIGHT];
 
     /*****************
      * DYNAMIC MEMORY
