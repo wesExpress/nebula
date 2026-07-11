@@ -8,7 +8,6 @@ layout (location=1) out vec4 vertex_color;
 layout (location=2) out vec3 vertex_normal;
 layout (location=3) out vec3 vertex_position;
 
-
 struct vertex
 {
     vec3 position;
