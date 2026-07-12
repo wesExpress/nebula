@@ -31,7 +31,7 @@ bool renderer_init(renderer_t *renderer, dm_context *context, dm_arena *arena)
         .alpha_dst_factor=DM_BLEND_FACTOR_ZERO
     };
 
-    if(!dm_renderer_create_raster_pipeline(context, pipe_desc, &renderer->pipeline)) return false;
+    if(!dm_renderer_create_raster_pipeline(context, pipe_desc, &renderer->raster_pipeline)) return false;
 
     // texture
     int w,h,n;
@@ -210,7 +210,7 @@ void renderer_render(renderer_t *renderer, dm_context *context, dm_resource swap
 
     dm_render_command_begin_rendering(context, swapchain, 0.f,0.f,0.f,1.f, 1.f);
 
-        dm_render_command_bind_pipeline(context, renderer->pipeline);
+        dm_render_command_bind_pipeline(context, renderer->raster_pipeline);
         dm_render_command_bind_index_buffer(context, renderer->ib, 0);
         dm_render_command_push_resources(context, resources, 5);
         dm_render_command_draw(context, 36, MAX_INSTANCES);

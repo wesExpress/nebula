@@ -42,7 +42,7 @@ typedef struct renderer_t
     dm_resource instb[DM_FRAMES_IN_FLIGHT];
     dm_resource texture, sampler;
 
-    dm_pipeline pipeline;
+    dm_pipeline raster_pipeline, compute_pipeline;
 
     /*****************
      * DYNAMIC MEMORY
