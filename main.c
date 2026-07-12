@@ -1,5 +1,5 @@
 #include "application.h"
-#include "voxel_renderer.h"
+#include "renderer.h"
 
 #ifndef NDEBUG
 #define NEBDEBUG
@@ -7,7 +7,7 @@
 
 int main(void)
 {
-    const size_t arena_size = sizeof(dm_context) + sizeof(voxel_renderer) + DM_KILABYTE;
+    const size_t arena_size = sizeof(dm_context) + sizeof(renderer_t) + DM_KILABYTE;
 
     application app = { 0 };
 

@@ -10,21 +10,14 @@ typedef struct voxel_t
     u32 data;
 } voxel;
 
-typedef struct voxel_vertex_t
-{
-    vec4 position_u;
-    vec4 normal_v;
-    vec4 color;
-} voxel_vertex;
-
 #define MAX_INSTANCES 8000
 
-typedef struct voxel_scene_data_t
+typedef struct scene_data_t
 {
     mat4 view_proj;
-} voxel_scene_data;
+} scene_data;
 
-typedef struct voxel_renderer_t
+typedef struct renderer_t
 {
     vec3 cam_pos;
     vec3 cam_forward;
@@ -33,7 +26,7 @@ typedef struct voxel_renderer_t
     float aspect;
     float znear, zfar;
 
-    voxel_scene_data scene_data;
+    scene_data scene_data;
 
     vec3 positions[MAX_INSTANCES];
     vec3 scales[MAX_INSTANCES];
@@ -56,10 +49,10 @@ typedef struct voxel_renderer_t
      ******************/
     voxel *voxels;
     u32   voxel_count;
-} voxel_renderer;
+} renderer_t;
 
-bool voxel_renderer_init(voxel_renderer *renderer, dm_context *context, dm_arena *arena);
-bool voxel_renderer_update(voxel_renderer *renderer, dm_context *context);
-void voxel_renderer_render(voxel_renderer *renderer, dm_context *context, dm_resource swapchain);
+bool renderer_init(renderer_t *renderer, dm_context *context, dm_arena *arena);
+bool renderer_update(renderer_t *renderer, dm_context *context);
+void renderer_render(renderer_t *renderer, dm_context *context, dm_resource swapchain);
 
 #endif // __VOXEL_RENDERER_H__

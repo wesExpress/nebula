@@ -1,4 +1,4 @@
-#include "voxel_renderer.h"
+#include "renderer.h"
 
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image/stb_image.h"
@@ -7,7 +7,7 @@
 
 #include "random_gen.h"
 
-bool voxel_renderer_init(voxel_renderer *renderer, dm_context *context, dm_arena *arena)
+bool renderer_init(renderer_t *renderer, dm_context *context, dm_arena *arena)
 {
     dm_raster_shader vertex_shader = {
         .path="../../assets/shaders/vertex",
@@ -139,7 +139,7 @@ bool voxel_renderer_init(voxel_renderer *renderer, dm_context *context, dm_arena
     return true;
 }
 
-bool voxel_renderer_update(voxel_renderer *renderer, dm_context *context)
+bool renderer_update(renderer_t *renderer, dm_context *context)
 {
     const u8 current_frame = context->renderer.current_frame;
 
@@ -195,7 +195,7 @@ bool voxel_renderer_update(voxel_renderer *renderer, dm_context *context)
     return true;
 }
 
-void voxel_renderer_render(voxel_renderer *renderer, dm_context *context, dm_resource swapchain)
+void renderer_render(renderer_t *renderer, dm_context *context, dm_resource swapchain)
 {
     const u8 current_frame = context->renderer.current_frame;
 
