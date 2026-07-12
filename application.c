@@ -40,9 +40,9 @@ bool application_init(application *app, size_t size, u16 width, u16 height, cons
     /*****************
      * VOXEL RENDERER
      ******************/
-    app->renderer = dm_arena_alloc(&app->arena, sizeof(voxel_renderer), &app->renderer_offset);
+    app->renderer = dm_arena_alloc(&app->arena, sizeof(renderer_t), &app->renderer_offset);
     if(!app->renderer) return false;
-    if(!voxel_renderer_init(app->renderer, app->context, &app->arena)) return false;
+    if(!renderer_init(app->renderer, app->context, &app->arena)) return false;
 #ifdef DM_DEBUG
     LOG_DEBUG("App arena capacity:   %zu", app->arena.capacity);
     LOG_DEBUG("App arena size:       %zu", app->arena.size);
@@ -62,14 +62,14 @@ void application_run(application *app)
          ***************/
         if(!dm_update_begin(app->context)) break;
 
-        if(!voxel_renderer_update(app->renderer, app->context)) break;
+        if(!renderer_update(app->renderer, app->context)) break;
 
         /*********
          * RENDER
          **********/
         if(!dm_render_begin(app->context)) break;
 
-        voxel_renderer_render(app->renderer, app->context, app->swapchain);
+        renderer_render(app->renderer, app->context, app->swapchain);
 
         if(!dm_render_end(app->context))   break;
 

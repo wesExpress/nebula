@@ -2,7 +2,7 @@
 #define __APPLICATION_H__
 
 #include "DarkMatter/dm.h"
-#include "voxel_renderer.h"
+#include "renderer.h"
 
 typedef struct application_t
 {
@@ -10,7 +10,7 @@ typedef struct application_t
     dm_context *context;
     size_t context_offset;
 
-    voxel_renderer *renderer;
+    renderer_t *renderer;
     size_t renderer_offset;
 
     /************
