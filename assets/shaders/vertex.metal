@@ -33,7 +33,6 @@ struct resources
 
 struct argument_buffer
 {
-    //device resources *addresses;
     device vertex_in *vertices;
     device instance *instances;
     device scene_data *constants;

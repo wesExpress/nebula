@@ -16,25 +16,6 @@ bool application_init(application *app, size_t size, u16 width, u16 height, cons
     LOG_DEBUG("DM arena remaining:  %zu", app->context->arena.capacity - app->context->arena.size);
 #endif
 
-    /*****************
-     * RENDER HANDLES
-     ******************/
-    dm_render_attachment_desc color_desc = {
-        .load_op=DM_RENDER_ATTACHMENT_LOAD_OP_CLEAR,
-        .store_op=DM_RENDER_ATTACHMENT_STORE_OP_STORE
-    };
-    dm_render_attachment_desc depth_desc = {
-        .load_op=DM_RENDER_ATTACHMENT_LOAD_OP_CLEAR,
-        .store_op=DM_RENDER_ATTACHMENT_STORE_OP_DONT_CARE
-    };
-    dm_render_target_desc swapchain_desc = {
-        .color_attachment=color_desc,
-        .depth_attachment=depth_desc,
-        .swapchain=true,
-        .depth=true
-    };
-    if(!dm_renderer_create_render_target(app->context, swapchain_desc, &app->swapchain)) return false;
-
     random_init();
 
     /*****************
@@ -69,7 +50,7 @@ void application_run(application *app)
          **********/
         if(!dm_render_begin(app->context)) break;
 
-        renderer_render(app->renderer, app->context, app->swapchain);
+        renderer_render(app->renderer, app->context);
 
         if(!dm_render_end(app->context))   break;
 

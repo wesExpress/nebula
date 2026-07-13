@@ -7,16 +7,12 @@
 typedef struct application_t
 {
     dm_arena arena;
+
     dm_context *context;
     size_t context_offset;
 
     renderer_t *renderer;
     size_t renderer_offset;
-
-    /************
-     * RENDERING 
-     *************/
-    dm_resource swapchain;
 } application;
 
 bool application_init(application *app, size_t size, u16 width, u16 height, const char *title);
