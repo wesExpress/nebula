@@ -1,20 +1,26 @@
 #ifndef __INSTANCES_H__
 #define __INSTANCES_H__
 
+#include "DarkMatter/dm.h"
 #include "cglm/cglm.h"
 
-#define MAX_INSTANCES 8000
+#define MAX_INSTANCES 1000000
 
-typedef struct instances_t
+#define P_SIZE (sizeof(vec3) * MAX_INSTANCES)
+#define S_SIZE (sizeof(vec3) * MAX_INSTANCES)
+#define O_SIZE (sizeof(versor) * MAX_INSTANCES)
+#define M_SIZE (sizeof(mat4) * MAX_INSTANCES * 2)
+
+typedef struct instance_data_t
 {
-    vec3 positions[MAX_INSTANCES];
-    vec3 scales[MAX_INSTANCES];
-    versor orientations[MAX_INSTANCES];
+    vec3 *positions;
+    vec3 *scales;
+    versor *orientations;
 
-    mat4 obj[MAX_INSTANCES][2];
-} instances;
+    mat4 (*obj)[2];
+} instance_data;
 
-void instances_init(instances *insts);
-void instances_update(instances *insts);
+bool instances_init(instance_data *instances, dm_arena *arena);
+void instances_update(instance_data *instances);
 
 #endif // __INSTANCES_H__

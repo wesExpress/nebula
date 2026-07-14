@@ -7,9 +7,7 @@
 
 #include "random_gen.h"
 
-#include "instances.h"
-
-bool renderer_init(renderer_t *renderer, dm_context *context)
+bool renderer_init(render_data *renderer, dm_context *context)
 {
     // swapchain
     dm_render_attachment_desc color_desc = {
@@ -156,12 +154,9 @@ bool renderer_init(renderer_t *renderer, dm_context *context)
         .data=view_proj
     };
 
-    mat4 models[MAX_INSTANCES][2] = { 0 };
-
     dm_buffer_desc instb_desc = {
         .type=DM_BUFFER_TYPE_STORAGE,
-        .size=sizeof(models),
-        .data=models
+        .size=M_SIZE,
     };
     for(u8 i=0; i<DM_FRAMES_IN_FLIGHT; i++)
     {
@@ -198,7 +193,7 @@ bool renderer_init(renderer_t *renderer, dm_context *context)
     return true;
 }
 
-bool renderer_update(renderer_t *renderer, dm_context *context, instances insts)
+bool renderer_update(render_data *renderer, dm_context *context, instance_data *instances)
 {
     const u8 current_frame = context->renderer.current_frame;
 
@@ -230,12 +225,12 @@ bool renderer_update(renderer_t *renderer, dm_context *context, instances insts)
 
     dm_render_command_update_buffer(context, renderer->cb[current_frame], view_proj, sizeof(view_proj));
 
-    dm_render_command_update_buffer(context, renderer->instb[current_frame], insts.obj, sizeof(insts.obj));
+    dm_render_command_update_buffer(context, renderer->instb[current_frame], instances->obj, M_SIZE);
 
     return true;
 }
 
-void renderer_render(renderer_t *renderer, dm_context *context)
+void renderer_render(render_data *renderer, dm_context *context)
 {
     const u8 current_frame = context->renderer.current_frame;
 

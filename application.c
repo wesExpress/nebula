@@ -3,9 +3,16 @@
 
 bool application_init(application *app, u16 width, u16 height, const char *title)
 {
-    if(!dm_init(&app->context, width, height, title, 0)) return false;
-
     random_init();
+
+    const size_t instance_data_size = P_SIZE + S_SIZE + O_SIZE + M_SIZE;
+
+    dm_arena_create(&app->arena, instance_data_size + DM_KILABYTE);
+
+    /*************
+     * DARKMATTER
+     **************/
+    if(!dm_init(&app->context, width, height, title, 0)) return false;
 
     /***********
      * RENDERER
@@ -15,7 +22,7 @@ bool application_init(application *app, u16 width, u16 height, const char *title
     /************
      * INSTANCES 
      *************/
-    instances_init(&app->instances);
+    instances_init(&app->instances, &app->arena);
 
     return true;
 }
@@ -31,7 +38,7 @@ void application_run(application *app)
 
         instances_update(&app->instances);
 
-        if(!renderer_update(&app->renderer, &app->context, app->instances)) break;
+        if(!renderer_update(&app->renderer, &app->context, &app->instances)) break;
 
         /*********
          * RENDER
@@ -52,4 +59,6 @@ void application_run(application *app)
 void application_shutdown(application *app)
 {
     dm_shutdown(&app->context);
+
+    dm_arena_detroy(&app->arena);
 }

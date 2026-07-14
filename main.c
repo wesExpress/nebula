@@ -8,20 +8,14 @@
 
 int main(void)
 {
-    dm_arena arena = { 0 };
-    dm_arena_create(&arena, sizeof(application));
+    application app = { 0 };
 
-    application *app = dm_arena_alloc(&arena, sizeof(application), NULL);
-
-    if(application_init(app, 1080, 720, "nebula"))
+    if(application_init(&app, 1080, 720, "nebula"))
     {
-        application_run(app);
+        application_run(&app);
     }
 
-    application_shutdown(app);
-
-    //
-    dm_arena_detroy(&arena);
+    application_shutdown(&app);
 
     return 0;
 }

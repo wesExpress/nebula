@@ -6,7 +6,7 @@
 #include "instances.h" 
 #include "cglm/cglm.h"
 
-typedef struct renderer_t
+typedef struct render_data_t
 {
     vec3 cam_pos;
     vec3 cam_forward;
@@ -30,10 +30,10 @@ typedef struct renderer_t
     dm_pipeline raster_pipeline, compute_pipeline, quad_pipeline;
     dm_resource render_target[DM_FRAMES_IN_FLIGHT];
     dm_resource quad_ib;
-} renderer_t;
+} render_data;
 
-bool renderer_init(renderer_t *renderer, dm_context *context);
-bool renderer_update(renderer_t *renderer, dm_context *context, instances insts);
-void renderer_render(renderer_t *renderer, dm_context *context);
+bool renderer_init(render_data *renderer, dm_context *context);
+bool renderer_update(render_data *renderer, dm_context *context, instance_data* instances);
+void renderer_render(render_data *renderer, dm_context *context);
 
 #endif // __VOXEL_RENDERER_H__
