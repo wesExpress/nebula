@@ -5,7 +5,6 @@ using namespace metal;
 struct vertex_out
 {
     float4 position [[position]];
-    float4 color;
     float2 uv;
 };
 
@@ -25,7 +24,6 @@ fragment fragment_out f_main(vertex_out v [[stage_in]], constant argument_buffer
     fragment_out f_out;
 
     f_out.color = arg.texture.sample(arg.s, v.uv);
-    f_out.color *= v.color;
 
     return f_out;
 }

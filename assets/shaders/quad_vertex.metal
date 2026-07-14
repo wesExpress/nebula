@@ -6,7 +6,12 @@ struct vertex_in
 {
     packed_float2 position;
     packed_float2 uv;
-    float4 color;
+};
+
+struct vertex_out
+{
+    float4 position [[position]];
+    float2 uv;
 };
 
 struct argument_buffer
@@ -15,18 +20,11 @@ struct argument_buffer
     sampler          s;
 };
 
-struct vertex_out
-{
-    float4 position [[position]];
-    float4 color;
-    float2 uv;
-};
-
 static constant vertex_in vertices[] = {
-    { { -1,-1 }, { 0,0 }, { 1,1,1,1 } },
-    { { -1, 1 }, { 0,1 }, { 1,1,1,1 } },
-    { {  1, 1 }, { 1,1 }, { 1,1,1,1 } },
-    { {  1,-1 }, { 1,0 }, { 1,1,1,1 } },
+    { { -1,-1 }, { 0,0 }, },
+    { { -1, 1 }, { 0,1 }, },
+    { {  1, 1 }, { 1,1 }, },
+    { {  1,-1 }, { 1,0 }, },
 };
 
 vertex vertex_out v_main(constant argument_buffer &arg[[buffer(0)]], uint v_id [[vertex_id]])
@@ -37,7 +35,6 @@ vertex vertex_out v_main(constant argument_buffer &arg[[buffer(0)]], uint v_id [
 
     v_out.position = float4(v.position, 0, 1);
     v_out.uv = v.uv;
-    v_out.color = v.color;
 
     return v_out;
 }

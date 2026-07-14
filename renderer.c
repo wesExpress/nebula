@@ -7,7 +7,9 @@
 
 #include "random_gen.h"
 
-bool renderer_init(renderer_t *renderer, dm_context *context, dm_arena *arena)
+#include "instances.h"
+
+bool renderer_init(renderer_t *renderer, dm_context *context)
 {
     // swapchain
     dm_render_attachment_desc color_desc = {
@@ -154,24 +156,6 @@ bool renderer_init(renderer_t *renderer, dm_context *context, dm_arena *arena)
         .data=view_proj
     };
 
-    const float world_size = 40.f;
-    const float half_world = world_size * 0.5f;
-    for(u32 i=0; i<MAX_INSTANCES; i++)
-    {
-        vec3 position = {
-            random_float() * world_size - half_world,
-            random_float() * world_size - half_world,
-            random_float() * world_size - half_world
-        };
-
-        vec3 scale = { random_float(), random_float(), random_float() };
-        vec3 axis = { random_float(), random_float(), random_float() };
-
-        glm_vec3_dup(position, renderer->positions[i]);
-        glm_vec3_dup(scale, renderer->scales[i]);
-        glm_quatv(renderer->orientations[i], random_float() * 3.14f * 2.f, axis);
-    }
-
     mat4 models[MAX_INSTANCES][2] = { 0 };
 
     dm_buffer_desc instb_desc = {
@@ -214,7 +198,7 @@ bool renderer_init(renderer_t *renderer, dm_context *context, dm_arena *arena)
     return true;
 }
 
-bool renderer_update(renderer_t *renderer, dm_context *context)
+bool renderer_update(renderer_t *renderer, dm_context *context, instances insts)
 {
     const u8 current_frame = context->renderer.current_frame;
 
@@ -246,26 +230,7 @@ bool renderer_update(renderer_t *renderer, dm_context *context)
 
     dm_render_command_update_buffer(context, renderer->cb[current_frame], view_proj, sizeof(view_proj));
 
-    mat4 models[MAX_INSTANCES][2] = { 0 };
-
-    for(u32 i=0; i<MAX_INSTANCES; i++)
-    {
-        versor delta;
-        glm_quatv(delta, 0.05f, (vec3){ 1,1,0 });
-        glm_quat_mul(delta, renderer->orientations[i], renderer->orientations[i]);
-        glm_quat_normalize(renderer->orientations[i]);
-
-        glm_mat4_identity(models[i][0]);
-
-        glm_translate(models[i][0], renderer->positions[i]);
-        glm_quat_rotate(models[i][0], renderer->orientations[i], models[i][0]);
-        glm_scale(models[i][0], renderer->scales[i]);
-
-        glm_mat4_inv(models[i][0], models[i][1]);
-        glm_mat4_transpose(models[i][1]);
-    }
-
-    dm_render_command_update_buffer(context, renderer->instb[current_frame], models, sizeof(models));
+    dm_render_command_update_buffer(context, renderer->instb[current_frame], insts.obj, sizeof(insts.obj));
 
     return true;
 }
