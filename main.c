@@ -9,7 +9,7 @@
 int main(void)
 {
     dm_arena arena = { 0 };
-    dm_arena_create(&arena, sizeof(application) + DM_KILABYTE);
+    dm_arena_create(&arena, sizeof(application));
 
     application *app = dm_arena_alloc(&arena, sizeof(application), NULL);
 
