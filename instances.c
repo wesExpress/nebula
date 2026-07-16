@@ -3,21 +3,9 @@
 #include "instances.h"
 #include "random_gen.h"
 
-bool instances_init(instance_data *instances, dm_arena *arena)
+bool instances_init(instance_data *instances)
 {
-    instances->positions = dm_arena_alloc(arena, P_SIZE);
-    if(!instances->positions) return false;
-
-    instances->scales = dm_arena_alloc(arena, S_SIZE);
-    if(!instances->scales) return false;
-
-    instances->orientations = dm_arena_alloc(arena, O_SIZE);
-    if(!instances->orientations) return false;
-
-    instances->obj = dm_arena_alloc(arena, M_SIZE);
-    if(!instances->obj) return false;
-
-    const float world_size = 150.f;
+    const float world_size = 50.f;
     const float half_world = world_size * 0.5f;
     for(u32 i=0; i<MAX_INSTANCES; i++)
     {
@@ -57,4 +45,3 @@ void instances_update(instance_data *instances)
         glm_mat4_transpose(instances->obj[i][1]);
     }
 }
-

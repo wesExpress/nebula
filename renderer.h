@@ -30,6 +30,10 @@ typedef struct render_data_t
     dm_pipeline raster_pipeline, compute_pipeline, quad_pipeline;
     dm_resource render_target[DM_FRAMES_IN_FLIGHT];
     dm_resource quad_ib;
+
+    dm_pipeline imgui_pipeline;
+    dm_resource imgui_vb[DM_FRAMES_IN_FLIGHT], imgui_ib[DM_FRAMES_IN_FLIGHT];
+    dm_resource imgui_constants;
 } render_data;
 
 bool renderer_init(render_data *renderer, dm_context *context);

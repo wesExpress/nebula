@@ -156,7 +156,7 @@ bool renderer_init(render_data *renderer, dm_context *context)
 
     dm_buffer_desc instb_desc = {
         .type=DM_BUFFER_TYPE_STORAGE,
-        .size=M_SIZE,
+        .size=sizeof(mat4) * MAX_INSTANCES * 2,
     };
     for(u8 i=0; i<DM_FRAMES_IN_FLIGHT; i++)
     {
@@ -197,6 +197,14 @@ bool renderer_update(render_data *renderer, dm_context *context, instance_data *
 {
     const u8 current_frame = context->renderer.current_frame;
 
+    if(dm_window_resized(context))
+    {
+        for(u8 i=0; i<DM_FRAMES_IN_FLIGHT; i++)
+        {
+            if(!dm_render_command_update_texture(context, renderer->render_target[i], NULL, 0, context->window.width, context->window.height)) return false;
+        }
+    }
+
     if(dm_is_key_pressed(context, 65))
     {
         renderer->cam_pos[0] -= 0.1f;
@@ -225,7 +233,7 @@ bool renderer_update(render_data *renderer, dm_context *context, instance_data *
 
     dm_render_command_update_buffer(context, renderer->cb[current_frame], view_proj, sizeof(view_proj));
 
-    dm_render_command_update_buffer(context, renderer->instb[current_frame], instances->obj, M_SIZE);
+    dm_render_command_update_buffer(context, renderer->instb[current_frame], instances->obj, sizeof(mat4) * MAX_INSTANCES * 2);
 
     return true;
 }

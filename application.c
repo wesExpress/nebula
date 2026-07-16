@@ -5,9 +5,9 @@ bool application_init(application *app, u16 width, u16 height, const char *title
 {
     random_init();
 
-    const size_t instance_data_size = P_SIZE + S_SIZE + O_SIZE + M_SIZE;
+    const size_t size = sizeof(instance_data);
 
-    dm_arena_create(&app->arena, instance_data_size + DM_KILABYTE);
+    dm_arena_create(&app->arena, size);
 
     /*************
      * DARKMATTER
@@ -22,7 +22,8 @@ bool application_init(application *app, u16 width, u16 height, const char *title
     /************
      * INSTANCES 
      *************/
-    instances_init(&app->instances, &app->arena);
+    app->instances = dm_arena_alloc(&app->arena, sizeof(instance_data));
+    instances_init(app->instances);
 
     return true;
 }
@@ -36,9 +37,9 @@ void application_run(application *app)
          ***************/
         if(!dm_update_begin(&app->context)) break;
 
-        instances_update(&app->instances);
+        instances_update(app->instances);
 
-        if(!renderer_update(&app->renderer, &app->context, &app->instances)) break;
+        if(!renderer_update(&app->renderer, &app->context, app->instances)) break;
 
         /*********
          * RENDER

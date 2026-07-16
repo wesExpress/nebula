@@ -6,7 +6,7 @@ project(nebula)
 
 add_subdirectory(lib/DarkMatter)
 
-set(SOURCES main.c application.c renderer.c random_gen.c instances.c)
+set(SOURCES main.c application.c renderer.c random_gen.c instances.c imgui.c)
 
 add_definitions(-DCGLM_FORCE_DEPTH_ZERO_TO_ONE)
 
