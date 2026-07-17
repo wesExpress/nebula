@@ -25,19 +25,13 @@ bool renderer_init(render_data *renderer, dm_context *context)
     }
 
     // swapchain
-    dm_render_attachment_desc color_desc = {
-        .load_op=DM_RENDER_ATTACHMENT_LOAD_OP_CLEAR,
-        .store_op=DM_RENDER_ATTACHMENT_STORE_OP_STORE
-    };
-    dm_render_attachment_desc depth_desc = {
-        .load_op=DM_RENDER_ATTACHMENT_LOAD_OP_LOAD,
-        .store_op=DM_RENDER_ATTACHMENT_STORE_OP_DONT_CARE
-    };
     dm_render_target_desc swapchain_desc = {
         .swapchain=true,
-        .color_attachment=color_desc,
+        .color_attachment.load_op=DM_RENDER_ATTACHMENT_LOAD_OP_CLEAR,
+        .color_attachment.store_op=DM_RENDER_ATTACHMENT_STORE_OP_STORE,
         .depth=true,
-        .depth_attachment=depth_desc,
+        .depth_attachment.load_op=DM_RENDER_ATTACHMENT_LOAD_OP_CLEAR,
+        .depth_attachment.store_op=DM_RENDER_ATTACHMENT_STORE_OP_DONT_CARE
     };
     if(!dm_renderer_create_render_target(context, swapchain_desc, &renderer->swapchain)) return false;
     
