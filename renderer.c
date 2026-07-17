@@ -5,10 +5,25 @@
 
 #include "vertex_data.h"
 
-#include "random_gen.h"
-
 bool renderer_init(render_data *renderer, dm_context *context)
 {
+    // render target
+    dm_render_target_desc rt_desc = {
+        .swapchain=false,
+        .color_attachment.width=context->window.width,
+        .color_attachment.height=context->window.height,
+        .color_attachment.load_op=DM_RENDER_ATTACHMENT_LOAD_OP_CLEAR,
+        .color_attachment.store_op=DM_RENDER_ATTACHMENT_STORE_OP_STORE,
+        .depth=true,
+        .depth_attachment.load_op=DM_RENDER_ATTACHMENT_LOAD_OP_CLEAR,
+        .depth_attachment.store_op=DM_RENDER_ATTACHMENT_STORE_OP_STORE,
+    };
+
+    for(u8 i=0; i<DM_FRAMES_IN_FLIGHT; i++)
+    {
+        if(!dm_renderer_create_render_target(context, rt_desc, &renderer->render_target[i])) return false;
+    }
+
     // swapchain
     dm_render_attachment_desc color_desc = {
         .load_op=DM_RENDER_ATTACHMENT_LOAD_OP_CLEAR,
@@ -19,10 +34,10 @@ bool renderer_init(render_data *renderer, dm_context *context)
         .store_op=DM_RENDER_ATTACHMENT_STORE_OP_DONT_CARE
     };
     dm_render_target_desc swapchain_desc = {
-        .color_attachment=color_desc,
-        .depth_attachment=depth_desc,
         .swapchain=true,
-        .depth=true
+        .color_attachment=color_desc,
+        .depth=true,
+        .depth_attachment=depth_desc,
     };
     if(!dm_renderer_create_render_target(context, swapchain_desc, &renderer->swapchain)) return false;
     
@@ -50,23 +65,6 @@ bool renderer_init(render_data *renderer, dm_context *context)
     };
 
     if(!dm_renderer_create_raster_pipeline(context, quad_pipe_desc, &renderer->quad_pipeline)) return false;
-
-    // render target
-    dm_render_target_desc rt_desc = {
-        .color_attachment.width=context->window.width,
-        .color_attachment.load_op=DM_RENDER_ATTACHMENT_LOAD_OP_CLEAR,
-        .color_attachment.store_op=DM_RENDER_ATTACHMENT_STORE_OP_STORE,
-        .color_attachment.height=context->window.height,
-        .depth_attachment.load_op=DM_RENDER_ATTACHMENT_LOAD_OP_CLEAR,
-        .depth_attachment.store_op=DM_RENDER_ATTACHMENT_STORE_OP_DONT_CARE,
-        .depth=true,
-        .swapchain=false,
-    };
-
-    for(u8 i=0; i<DM_FRAMES_IN_FLIGHT; i++)
-    {
-        if(!dm_renderer_create_render_target(context, rt_desc, &renderer->render_target[i])) return false;
-    }
 
     // object pipeline
     dm_raster_shader vertex_shader = {
@@ -199,9 +197,14 @@ bool renderer_update(render_data *renderer, dm_context *context, instance_data *
 
     if(dm_window_resized(context))
     {
+        const u16 width = context->window.width;
+        const u16 height = context->window.height;
+
         for(u8 i=0; i<DM_FRAMES_IN_FLIGHT; i++)
         {
-            if(!dm_render_command_update_texture(context, renderer->render_target[i], NULL, 0, context->window.width, context->window.height)) return false;
+            dm_resource target = renderer->render_target[i];
+            
+            if(!dm_render_command_resize_render_target(context, target, width, height)) return false;
         }
     }
 
@@ -233,7 +236,8 @@ bool renderer_update(render_data *renderer, dm_context *context, instance_data *
 
     dm_render_command_update_buffer(context, renderer->cb[current_frame], view_proj, sizeof(view_proj));
 
-    dm_render_command_update_buffer(context, renderer->instb[current_frame], instances->obj, sizeof(mat4) * MAX_INSTANCES * 2);
+    const size_t obj_size = sizeof(mat4) * MAX_INSTANCES * 2;
+    dm_render_command_update_buffer(context, renderer->instb[current_frame], instances->obj, obj_size);
 
     return true;
 }

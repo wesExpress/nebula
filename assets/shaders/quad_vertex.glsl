@@ -4,38 +4,29 @@
 #extension GL_EXT_nonuniform_qualifier : require
 
 layout (location=0) out vec2 vertex_uv;
-layout (location=1) out vec4 vertex_color;
 
 struct vertex
 {
     vec2 position;
     vec2 uv;
-    vec4 color;
 };
-
-layout (descriptor_heap) readonly only vertex_buffer_t
-{
-    vertex vertices[];
-} vertex_buffer_heap[];
-
-layout (descriptor_heap) readonly only scene_data
-{
-    mat4 ortho;
-} scene_data_heap[];
 
 layout (push_constant) uniform push_data_t
 {
-    uint vb_index;
-    uint scene_index;
     uint texture_index;
     uint sampler_index;
 } push_data;
 
+vertex vertices[] = {
+    { { -1,-1 }, { 0,0 } },
+    { { -1, 1 }, { 0,1 } },
+    { {  1, 1 }, { 1,1 } },
+    { {  1,-1 }, { 1,0 } },
+};
+
 void main()
 {
-    mat4 ortho = scene_data_heap[push_data.scene_index].ortho;
-    gl_Position = ortho * mat4(1.f) * vertex_buffer_heap[push_data.vb_index].vertices[gl_VertexIndex].position;
+    gl_Position = vec4(vertices[gl_VertexIndex].position, 0, 1.f);
 
-    vertex_uv = vertex_buffer_heap[push_data.vb_index].vertices[gl_VertexIndex].uv;
-    vertex_color = vertex_buffer_heap[push_data.vb_index].vertices[gl_VertexIndex].color;
+    vertex_uv = vertices[gl_VertexIndex].uv;
 }
