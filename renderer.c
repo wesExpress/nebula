@@ -5,6 +5,10 @@
 
 #include "vertex_data.h"
 
+#define GRID_X 16
+#define GRID_Y 16
+#define GRID_Z 1
+
 bool renderer_init(render_data *renderer, dm_context *context)
 {
     // render target
@@ -84,6 +88,13 @@ bool renderer_init(render_data *renderer, dm_context *context)
     };
 
     if(!dm_renderer_create_raster_pipeline(context, pipe_desc, &renderer->raster_pipeline)) return false;
+
+    dm_compute_pipeline_desc compute_desc = {
+        .shader.entry="c_main",
+        .shader.path="../../assets/shaders/compute",
+        .grp_x=GRID_X,.grp_y=GRID_Y,.grp_z=GRID_Z
+    };
+    if(!dm_renderer_create_compute_pipeline(context, compute_desc, &renderer->compute_pipeline)) return false;
 
     // texture
     int w,h,n;
@@ -182,12 +193,20 @@ bool renderer_init(render_data *renderer, dm_context *context)
 
     if(!dm_renderer_upload_resources_to_heap(context, resources, resource_count)) return false;
 
+    // synchronization
+    for(u8 i=0; i<DM_FRAMES_IN_FLIGHT; i++)
+    {
+        if(!dm_renderer_create_synchronization(context, (dm_synchronization_desc){ 0 }, &renderer->synchronization[i])) return false;
+    }
+
     return true;
 }
 
 bool renderer_update(render_data *renderer, dm_context *context, instance_data *instances)
 {
     const u8 current_frame = context->renderer.current_frame;
+
+    dm_render_command_update_begin(context);
 
     if(dm_window_resized(context))
     {
@@ -233,6 +252,8 @@ bool renderer_update(render_data *renderer, dm_context *context, instance_data *
     const size_t obj_size = sizeof(mat4) * MAX_INSTANCES * 2;
     dm_render_command_update_buffer(context, renderer->instb[current_frame], instances->obj, obj_size);
 
+    dm_render_command_update_end(context);
+
     return true;
 }
 
@@ -255,8 +276,26 @@ void renderer_render(render_data *renderer, dm_context *context)
         dm_render_command_bind_index_buffer(context, renderer->ib, 0);
         dm_render_command_push_resources(context, resources, 5);
         dm_render_command_draw(context, 36, MAX_INSTANCES);
+        dm_render_command_update_synchronization(context, renderer->synchronization[current_frame]);
     
     dm_render_command_end_rendering(context, renderer->render_target[current_frame]);
+
+    // compute time
+    dm_resource compute_resources[] = {
+        renderer->render_target[current_frame]
+    };
+
+    const u16 dx = (context->window.width + GRID_X - 1) / GRID_X;
+    const u16 dy = (context->window.height + GRID_Y - 1) / GRID_Y;
+    const u16 dz = GRID_Z;
+
+    dm_compute_command_begin_recording(context);
+        dm_compute_command_wait_synchronization(context, renderer->synchronization[current_frame]);
+        dm_compute_command_bind_pipeline(context, renderer->compute_pipeline);
+        dm_compute_command_push_resources(context, compute_resources, 1);
+        dm_compute_command_dispatch(context, dx, dy, dz);
+        dm_compute_command_update_synchronization(context, renderer->synchronization[current_frame]);
+    dm_compute_command_end_recording(context);
 
     // draw to screen
     dm_resource quad_resources[] = {
@@ -266,6 +305,7 @@ void renderer_render(render_data *renderer, dm_context *context)
 
     dm_render_command_begin_rendering(context, renderer->swapchain, 1,0,1,1, 1);
 
+        dm_render_command_wait_synchronization(context, renderer->synchronization[current_frame]);
         dm_render_command_bind_pipeline(context, renderer->quad_pipeline);
         dm_render_command_bind_index_buffer(context, renderer->quad_ib, 0);
         dm_render_command_push_resources(context, quad_resources, 2);
