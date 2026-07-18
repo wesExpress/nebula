@@ -27,7 +27,10 @@ static constant vertex_in vertices[] = {
     { {  1,-1 }, { 1,0 }, },
 };
 
-vertex vertex_out v_main(constant argument_buffer &arg[[buffer(0)]], uint v_id [[vertex_id]])
+[[vertex]] 
+vertex_out v_main(
+    constant argument_buffer &arg[[buffer(0)]], 
+    uint v_id [[vertex_id]])
 {
     vertex_out v_out;
 

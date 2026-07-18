@@ -85,6 +85,13 @@ bool renderer_init(render_data *renderer, dm_context *context)
 
     if(!dm_renderer_create_raster_pipeline(context, pipe_desc, &renderer->raster_pipeline)) return false;
 
+    dm_compute_pipeline_desc compute_desc = {
+        .shader.entry="c_main",
+        .shader.path="../../assets/shaders/compute",
+        .grp_x=16,.grp_y=16,.grp_z=1
+    };
+    if(!dm_renderer_create_compute_pipeline(context, compute_desc, &renderer->compute_pipeline)) return false;
+
     // texture
     int w,h,n;
 
@@ -261,6 +268,17 @@ void renderer_render(render_data *renderer, dm_context *context)
         dm_render_command_draw(context, 36, MAX_INSTANCES);
     
     dm_render_command_end_rendering(context, renderer->render_target[current_frame]);
+
+    // compute time
+    dm_resource compute_resources[] = {
+        renderer->render_target[current_frame]
+    };
+
+    dm_compute_command_begin_recording(context);
+        dm_compute_command_bind_pipeline(context, renderer->compute_pipeline);
+        dm_compute_command_push_resources(context, compute_resources, 1);
+        dm_compute_command_dispatch(context, (context->window.width+15)/16, (context->window.height+15)/16, 1);
+    dm_compute_command_end_recording(context);
 
     // draw to screen
     dm_resource quad_resources[] = {
