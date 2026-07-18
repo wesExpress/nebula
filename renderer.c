@@ -189,6 +189,8 @@ bool renderer_update(render_data *renderer, dm_context *context, instance_data *
 {
     const u8 current_frame = context->renderer.current_frame;
 
+    dm_render_command_update_begin(context);
+
     if(dm_window_resized(context))
     {
         const u16 width = context->window.width;
@@ -232,6 +234,8 @@ bool renderer_update(render_data *renderer, dm_context *context, instance_data *
 
     const size_t obj_size = sizeof(mat4) * MAX_INSTANCES * 2;
     dm_render_command_update_buffer(context, renderer->instb[current_frame], instances->obj, obj_size);
+
+    dm_render_command_update_end(context);
 
     return true;
 }
