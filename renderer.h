@@ -36,6 +36,8 @@ typedef struct render_data_t
     dm_resource imgui_constants;
 
     dm_pipeline compute_pipeline;
+
+    dm_synchronization synchronization[DM_FRAMES_IN_FLIGHT];
 } render_data;
 
 bool renderer_init(render_data *renderer, dm_context *context);
