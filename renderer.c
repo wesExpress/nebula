@@ -194,10 +194,12 @@ bool renderer_init(render_data *renderer, dm_context *context)
     if(!dm_renderer_upload_resources_to_heap(context, resources, resource_count)) return false;
 
     // synchronization
-    dm_synchronization_desc sync_desc = {
-        .value=DM_FRAMES_IN_FLIGHT-1
-    };
-    if(!dm_renderer_create_synchronization(context, sync_desc, &renderer->synchronization)) return false;
+    for(u8 i=0; i<DM_FRAMES_IN_FLIGHT; i++)
+    {
+        dm_synchronization_desc desc = { 0 };
+
+        if(!dm_renderer_create_synchronization(context, desc, &renderer->synchronization[i])) return false;
+    }
 
     return true;
 }
@@ -271,31 +273,32 @@ void renderer_render(render_data *renderer, dm_context *context)
     };
 
     dm_render_command_begin_rendering(context, renderer->render_target[current_frame], 0,0,0,1, 1.f);
-
         dm_render_command_bind_pipeline(context, renderer->raster_pipeline);
         dm_render_command_bind_index_buffer(context, renderer->ib, 0);
         dm_render_command_push_resources(context, resources, 5);
         dm_render_command_draw(context, 36, MAX_INSTANCES);
-        //dm_render_command_update_synchronization(context, renderer->synchronization);
-    
     dm_render_command_end_rendering(context, renderer->render_target[current_frame]);
+
+    dm_render_command_signal(context, renderer->synchronization[current_frame]);
 
     // compute time
     dm_resource compute_resources[] = {
         renderer->render_target[current_frame]
     };
 
-    const u16 dx = (context->window.width + GRID_X - 1) / GRID_X;
+    const u16 dx = (context->window.width / 2 + GRID_X - 1) / GRID_X;
     const u16 dy = (context->window.height + GRID_Y - 1) / GRID_Y;
     const u16 dz = GRID_Z;
 
+    dm_compute_command_wait(context, renderer->synchronization[current_frame]);
+
     dm_compute_command_begin_recording(context);
-        //dm_compute_command_wait_synchronization(context, renderer->synchronization);
         dm_compute_command_bind_pipeline(context, renderer->compute_pipeline);
         dm_compute_command_push_resources(context, compute_resources, 1);
         dm_compute_command_dispatch(context, dx, dy, dz);
-        //dm_compute_command_update_synchronization(context, renderer->synchronization);
     dm_compute_command_end_recording(context);
+
+    dm_compute_command_signal(context, renderer->synchronization[current_frame]);
 
     // draw to screen
     dm_resource quad_resources[] = {
@@ -303,13 +306,12 @@ void renderer_render(render_data *renderer, dm_context *context)
         renderer->sampler
     };
 
-    dm_render_command_begin_rendering(context, renderer->swapchain, 1,0,1,1, 1);
+    dm_render_command_wait(context, renderer->synchronization[current_frame]);
 
-        //dm_render_command_wait_synchronization(context, renderer->synchronization);
+    dm_render_command_begin_rendering(context, renderer->swapchain, 1,0,1,1, 1);
         dm_render_command_bind_pipeline(context, renderer->quad_pipeline);
         dm_render_command_bind_index_buffer(context, renderer->quad_ib, 0);
         dm_render_command_push_resources(context, quad_resources, 2);
         dm_render_command_draw(context, 6, 1);
-
     dm_render_command_end_rendering(context, renderer->swapchain);
 }
