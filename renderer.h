@@ -38,6 +38,7 @@ typedef struct render_data_t
     dm_pipeline compute_pipeline;
 
     dm_synchronization synchronization[DM_FRAMES_IN_FLIGHT];
+    u64 sync_values[DM_FRAMES_IN_FLIGHT];
 } render_data;
 
 bool renderer_init(render_data *renderer, dm_context *context);
