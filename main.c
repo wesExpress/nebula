@@ -1,6 +1,4 @@
-#include "DarkMatter/dm.h"
 #include "application.h"
-#include "renderer.h"
 
 #ifndef NDEBUG
 #define NEBDEBUG
