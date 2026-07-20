@@ -262,6 +262,7 @@ bool renderer_update(render_data *renderer, dm_context *context, instance_data *
 void renderer_render(render_data *renderer, dm_context *context)
 {
     const u8 current_frame = context->renderer.current_frame;
+    dm_resource render_target = renderer->render_target[current_frame];
 
     // render to texture
     dm_resource resources[] ={
@@ -272,18 +273,18 @@ void renderer_render(render_data *renderer, dm_context *context)
         renderer->sampler,
     };
 
-    dm_render_command_begin_rendering(context, renderer->render_target[current_frame], 0,0,0,1, 1.f);
+    dm_render_command_begin_rendering(context, render_target, 0,0,0,1, 1.f);
         dm_render_command_bind_pipeline(context, renderer->raster_pipeline);
         dm_render_command_bind_index_buffer(context, renderer->ib, 0);
         dm_render_command_push_resources(context, resources, 5);
         dm_render_command_draw(context, 36, MAX_INSTANCES);
-    dm_render_command_end_rendering(context, renderer->render_target[current_frame]);
+    dm_render_command_end_rendering(context, render_target);
 
     dm_render_command_signal(context, renderer->synchronization[current_frame]);
 
     // compute time
     dm_resource compute_resources[] = {
-        renderer->render_target[current_frame]
+        render_target
     };
 
     const u16 dx = (context->window.width / 2 + GRID_X - 1) / GRID_X;
@@ -302,7 +303,7 @@ void renderer_render(render_data *renderer, dm_context *context)
 
     // draw to screen
     dm_resource quad_resources[] = {
-        renderer->render_target[current_frame],
+        render_target,
         renderer->sampler
     };
 
