@@ -3,23 +3,18 @@
 
 #include "DarkMatter/dm.h"
 #include "renderer.h"
+#include "instances.h"
 
 typedef struct application_t
 {
+    dm_context     context;
+    render_data    renderer;
+    instance_data *instances;
+
     dm_arena arena;
-    dm_context *context;
-    size_t context_offset;
-
-    renderer_t *renderer;
-    size_t renderer_offset;
-
-    /************
-     * RENDERING 
-     *************/
-    dm_resource swapchain;
 } application;
 
-bool application_init(application *app, size_t size, u16 width, u16 height, const char *title);
+bool application_init(application *app, u16 width, u16 height, const char *title);
 void application_run(application *app);
 void application_shutdown(application *app);
 

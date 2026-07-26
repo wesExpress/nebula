@@ -3,21 +3,10 @@
 
 #include "DarkMatter/dm.h"
 
+#include "instances.h" 
 #include "cglm/cglm.h"
 
-typedef struct voxel_t
-{
-    u32 data;
-} voxel;
-
-#define MAX_INSTANCES 8000
-
-typedef struct scene_data_t
-{
-    mat4 view_proj;
-} scene_data;
-
-typedef struct renderer_t
+typedef struct render_data_t
 {
     vec3 cam_pos;
     vec3 cam_forward;
@@ -26,33 +15,33 @@ typedef struct renderer_t
     float aspect;
     float znear, zfar;
 
-    scene_data scene_data;
-
-    vec3 positions[MAX_INSTANCES];
-    vec3 scales[MAX_INSTANCES];
-    versor orientations[MAX_INSTANCES];
-
     double frame_time;
     u32 frame_count;
 
     /*****************
      * RENDER HANDLES
      ******************/
+    dm_resource swapchain;
+
     dm_resource vb, ib, cb[DM_FRAMES_IN_FLIGHT];
     dm_resource instb[DM_FRAMES_IN_FLIGHT];
     dm_resource texture, sampler;
 
-    dm_pipeline pipeline;
+    dm_pipeline raster_pipeline, quad_pipeline;
+    dm_resource render_target[DM_FRAMES_IN_FLIGHT];
+    dm_resource quad_ib;
 
-    /*****************
-     * DYNAMIC MEMORY
-     ******************/
-    voxel *voxels;
-    u32   voxel_count;
-} renderer_t;
+    dm_pipeline imgui_pipeline;
+    dm_resource imgui_vb[DM_FRAMES_IN_FLIGHT], imgui_ib[DM_FRAMES_IN_FLIGHT];
+    dm_resource imgui_constants;
 
-bool renderer_init(renderer_t *renderer, dm_context *context, dm_arena *arena);
-bool renderer_update(renderer_t *renderer, dm_context *context);
-void renderer_render(renderer_t *renderer, dm_context *context, dm_resource swapchain);
+    dm_pipeline compute_pipeline;
+
+    dm_resource synchronization[DM_FRAMES_IN_FLIGHT];
+} render_data;
+
+bool renderer_init(render_data *renderer, dm_context *context);
+bool renderer_update(render_data *renderer, dm_context *context, instance_data* instances);
+void renderer_render(render_data *renderer, dm_context *context);
 
 #endif // __VOXEL_RENDERER_H__

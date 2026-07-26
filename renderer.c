@@ -5,10 +5,66 @@
 
 #include "vertex_data.h"
 
-#include "random_gen.h"
+#define GRID_X 16
+#define GRID_Y 16
+#define GRID_Z 1
 
-bool renderer_init(renderer_t *renderer, dm_context *context, dm_arena *arena)
+bool renderer_init(render_data *renderer, dm_context *context)
 {
+    // render target
+    dm_render_target_desc rt_desc = {
+        .swapchain=false,
+        .color_attachment.width=context->window.width,
+        .color_attachment.height=context->window.height,
+        .color_attachment.load_op=DM_RENDER_ATTACHMENT_LOAD_OP_CLEAR,
+        .color_attachment.store_op=DM_RENDER_ATTACHMENT_STORE_OP_STORE,
+        .depth=true,
+        .depth_attachment.load_op=DM_RENDER_ATTACHMENT_LOAD_OP_CLEAR,
+        .depth_attachment.store_op=DM_RENDER_ATTACHMENT_STORE_OP_STORE,
+    };
+
+    for(u8 i=0; i<DM_FRAMES_IN_FLIGHT; i++)
+    {
+        if(!dm_renderer_create_render_target(context, rt_desc, &renderer->render_target[i])) return false;
+    }
+
+    // swapchain
+    dm_render_target_desc swapchain_desc = {
+        .swapchain=true,
+        .color_attachment.load_op=DM_RENDER_ATTACHMENT_LOAD_OP_CLEAR,
+        .color_attachment.store_op=DM_RENDER_ATTACHMENT_STORE_OP_STORE,
+        .depth=true,
+        .depth_attachment.load_op=DM_RENDER_ATTACHMENT_LOAD_OP_CLEAR,
+        .depth_attachment.store_op=DM_RENDER_ATTACHMENT_STORE_OP_DONT_CARE
+    };
+    if(!dm_renderer_create_render_target(context, swapchain_desc, &renderer->swapchain)) return false;
+    
+    // quad pipeline
+    dm_raster_shader quad_vertex = {
+        .path="../../assets/shaders/quad_vertex",
+        .entry="v_main"
+    };
+    dm_raster_shader quad_fragment = {
+        .path="../../assets/shaders/quad_fragment",
+        .entry="f_main"
+    };
+
+    dm_raster_pipe_desc quad_pipe_desc = {
+        .shaders[DM_RASTER_SHADER_STAGE_VERTEX]=quad_vertex,
+        .shaders[DM_RASTER_SHADER_STAGE_FRAGMENT]=quad_fragment,
+
+        .blend=true,
+        .color_blend_op=DM_BLEND_OP_ADD,
+        .color_src_factor=DM_BLEND_FACTOR_SRC_ALPHA,
+        .color_dst_factor=DM_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA,
+        .alpha_blend_op=DM_BLEND_OP_ADD,
+        .alpha_src_factor=DM_BLEND_FACTOR_ONE,
+        .alpha_dst_factor=DM_BLEND_FACTOR_ZERO
+    };
+
+    if(!dm_renderer_create_raster_pipeline(context, quad_pipe_desc, &renderer->quad_pipeline)) return false;
+
+    // object pipeline
     dm_raster_shader vertex_shader = {
         .path="../../assets/shaders/vertex",
         .entry="v_main"
@@ -31,7 +87,14 @@ bool renderer_init(renderer_t *renderer, dm_context *context, dm_arena *arena)
         .alpha_dst_factor=DM_BLEND_FACTOR_ZERO
     };
 
-    if(!dm_renderer_create_raster_pipeline(context, pipe_desc, &renderer->pipeline)) return false;
+    if(!dm_renderer_create_raster_pipeline(context, pipe_desc, &renderer->raster_pipeline)) return false;
+
+    dm_compute_pipeline_desc compute_desc = {
+        .shader.entry="c_main",
+        .shader.path="../../assets/shaders/compute",
+        .grp_x=GRID_X,.grp_y=GRID_Y,.grp_z=GRID_Z
+    };
+    if(!dm_renderer_create_compute_pipeline(context, compute_desc, &renderer->compute_pipeline)) return false;
 
     // texture
     int w,h,n;
@@ -58,11 +121,13 @@ bool renderer_init(renderer_t *renderer, dm_context *context, dm_arena *arena)
     dm_buffer_desc vb_desc = {
         .type=DM_BUFFER_TYPE_VERTEX,
         .size=sizeof(cube_vertices),
+        .stride=sizeof(vertex),
         .data=cube_vertices
     };
     dm_buffer_desc ib_desc = {
         .type=DM_BUFFER_TYPE_INDEX,
         .size=sizeof(cube_indices),
+        .stride=sizeof(cube_indices[0]),
         .data=cube_indices
     };
     if(!dm_renderer_create_buffer(context, vb_desc, &renderer->vb)) return false;
@@ -82,42 +147,22 @@ bool renderer_init(renderer_t *renderer, dm_context *context, dm_arena *arena)
     glm_vec3_dup(cam_forward, renderer->cam_forward);
     glm_vec3_dup(cam_up, renderer->cam_up);
 
-    mat4 view, proj;
+    mat4 view, proj, view_proj;
 
     glm_look(renderer->cam_pos, renderer->cam_forward, renderer->cam_up, view);
     glm_perspective(renderer->fov, renderer->aspect, renderer->znear, renderer->zfar, proj);
-    glm_mat4_mul(proj, view, renderer->scene_data.view_proj);
+    glm_mat4_mul(proj, view, view_proj);
 
     dm_buffer_desc cb_desc = {
         .type=DM_BUFFER_TYPE_STORAGE,
-        .size=sizeof(renderer->scene_data),
-        .data=&renderer->scene_data
+        .size=sizeof(mat4),
+        .data=view_proj
     };
-
-    const float world_size = 40.f;
-    const float half_world = world_size * 0.5f;
-    for(u32 i=0; i<MAX_INSTANCES; i++)
-    {
-        vec3 position = {
-            random_float() * world_size - half_world,
-            random_float() * world_size - half_world,
-            random_float() * world_size - half_world
-        };
-
-        vec3 scale = { random_float(), random_float(), random_float() };
-        vec3 axis = { random_float(), random_float(), random_float() };
-
-        glm_vec3_dup(position, renderer->positions[i]);
-        glm_vec3_dup(scale, renderer->scales[i]);
-        glm_quatv(renderer->orientations[i], random_float() * 3.14f * 2.f, axis);
-    }
-
-    mat4 models[MAX_INSTANCES][2] = { 0 };
 
     dm_buffer_desc instb_desc = {
         .type=DM_BUFFER_TYPE_STORAGE,
-        .size=sizeof(models),
-        .data=models
+        .size=sizeof(mat4) * MAX_INSTANCES * 2,
+        .stride=2 * sizeof(mat4)
     };
     for(u8 i=0; i<DM_FRAMES_IN_FLIGHT; i++)
     {
@@ -125,23 +170,62 @@ bool renderer_init(renderer_t *renderer, dm_context *context, dm_arena *arena)
         if(!dm_renderer_create_buffer(context, instb_desc, &renderer->instb[i])) return false;
     }
 
+    // quad stuff
+    u32 quad_indices[] = {
+        0,1,2,
+        3,0,2,
+    };
+
+    dm_buffer_desc quad_ib_desc = {
+        .type=DM_BUFFER_TYPE_INDEX,
+        .size=sizeof(quad_indices),
+        .stride=sizeof(quad_indices[0]),
+        .data=quad_indices
+    };
+
+    if(!dm_renderer_create_buffer(context, quad_ib_desc, &renderer->quad_ib)) return false;
+
     // submit resources
-    dm_resource *resources[100] = { &renderer->vb, &renderer->ib, &renderer->texture, &renderer->sampler };
-    u32 resource_count = 4;
+    dm_resource *resources[100] = { &renderer->vb, &renderer->ib, &renderer->quad_ib, &renderer->texture, &renderer->sampler };
+    u32 resource_count = 5;
     for(u8 i=0; i<DM_FRAMES_IN_FLIGHT; i++)
     {
         resources[resource_count++] = &renderer->cb[i];
         resources[resource_count++] = &renderer->instb[i];
+        resources[resource_count++] = &renderer->render_target[i];
     }
 
     if(!dm_renderer_upload_resources_to_heap(context, resources, resource_count)) return false;
 
+    // synchronization
+    for(u8 i=0; i<DM_FRAMES_IN_FLIGHT; i++)
+    {
+        dm_synchronization_desc desc = { 0 };
+
+        if(!dm_renderer_create_synchronization(context, desc, &renderer->synchronization[i])) return false;
+    }
+
     return true;
 }
 
-bool renderer_update(renderer_t *renderer, dm_context *context)
+bool renderer_update(render_data *renderer, dm_context *context, instance_data *instances)
 {
     const u8 current_frame = context->renderer.current_frame;
+
+    dm_render_command_update_begin(context);
+
+    if(dm_window_resized(context))
+    {
+        const u16 width = context->window.width;
+        const u16 height = context->window.height;
+
+        for(u8 i=0; i<DM_FRAMES_IN_FLIGHT; i++)
+        {
+            dm_resource target = renderer->render_target[i];
+            
+            if(!dm_render_command_resize_render_target(context, target, width, height)) return false;
+        }
+    }
 
     if(dm_is_key_pressed(context, 65))
     {
@@ -161,45 +245,30 @@ bool renderer_update(renderer_t *renderer, dm_context *context)
         renderer->cam_pos[2] += 0.1f;
     }
 
-    mat4 view, proj;
+    mat4 view, proj, view_proj;
 
     renderer->aspect = (float)context->window.width / (float)context->window.height;
 
     glm_look(renderer->cam_pos, renderer->cam_forward, renderer->cam_up, view);
     glm_perspective(renderer->fov, renderer->aspect, renderer->znear, renderer->zfar, proj);
-    glm_mat4_mul(proj, view, renderer->scene_data.view_proj);
+    glm_mat4_mul(proj, view, view_proj);
 
-    dm_render_command_update_buffer(context, renderer->cb[current_frame], &renderer->scene_data, sizeof(renderer->scene_data));
+    dm_render_command_update_buffer(context, renderer->cb[current_frame], view_proj, sizeof(view_proj));
 
-    mat4 models[MAX_INSTANCES][2] = { 0 };
+    const size_t obj_size = sizeof(mat4) * MAX_INSTANCES * 2;
+    dm_render_command_update_buffer(context, renderer->instb[current_frame], instances->obj, obj_size);
 
-    for(u32 i=0; i<MAX_INSTANCES; i++)
-    {
-        versor delta;
-        glm_quatv(delta, 0.05f, (vec3){ 1,1,0 });
-        glm_quat_mul(delta, renderer->orientations[i], renderer->orientations[i]);
-        glm_quat_normalize(renderer->orientations[i]);
-
-        glm_mat4_identity(models[i][0]);
-
-        glm_translate(models[i][0], renderer->positions[i]);
-        glm_quat_rotate(models[i][0], renderer->orientations[i], models[i][0]);
-        glm_scale(models[i][0], renderer->scales[i]);
-
-        glm_mat4_inv(models[i][0], models[i][1]);
-        glm_mat4_transpose(models[i][1]);
-    }
-
-    dm_render_command_update_buffer(context, renderer->instb[current_frame], models, sizeof(models));
+    dm_render_command_update_end(context);
 
     return true;
 }
 
-void renderer_render(renderer_t *renderer, dm_context *context, dm_resource swapchain)
+void renderer_render(render_data *renderer, dm_context *context)
 {
     const u8 current_frame = context->renderer.current_frame;
+    dm_resource render_target = renderer->render_target[current_frame];
 
-    // render
+    // render to texture
     dm_resource resources[] ={
         renderer->vb,
         renderer->instb[current_frame],
@@ -208,12 +277,46 @@ void renderer_render(renderer_t *renderer, dm_context *context, dm_resource swap
         renderer->sampler,
     };
 
-    dm_render_command_begin_rendering(context, swapchain, 0.f,0.f,0.f,1.f, 1.f);
-
-        dm_render_command_bind_pipeline(context, renderer->pipeline);
+    dm_render_command_begin_rendering(context, render_target, 0,0,0,1, 1.f);
+        dm_render_command_bind_pipeline(context, renderer->raster_pipeline);
         dm_render_command_bind_index_buffer(context, renderer->ib, 0);
         dm_render_command_push_resources(context, resources, 5);
         dm_render_command_draw(context, 36, MAX_INSTANCES);
-    
-    dm_render_command_end_rendering(context, swapchain);
+    dm_render_command_end_rendering(context, render_target);
+
+    dm_render_command_signal(context, renderer->synchronization[current_frame]);
+
+    // compute time
+    dm_resource compute_resources[] = {
+        render_target
+    };
+
+    const u16 dx = (context->window.width / 2 + GRID_X - 1) / GRID_X;
+    const u16 dy = (context->window.height + GRID_Y - 1) / GRID_Y;
+    const u16 dz = GRID_Z;
+
+    dm_compute_command_wait(context, renderer->synchronization[current_frame]);
+
+    dm_compute_command_begin_recording(context);
+        dm_compute_command_bind_pipeline(context, renderer->compute_pipeline);
+        dm_compute_command_push_resources(context, compute_resources, 1);
+        dm_compute_command_dispatch(context, dx, dy, dz);
+    dm_compute_command_end_recording(context);
+
+    dm_compute_command_signal(context, renderer->synchronization[current_frame]);
+
+    // draw to screen
+    dm_resource quad_resources[] = {
+        render_target,
+        renderer->sampler
+    };
+
+    dm_render_command_wait(context, renderer->synchronization[current_frame]);
+
+    dm_render_command_begin_rendering(context, renderer->swapchain, 1,0,1,1, 1);
+        dm_render_command_bind_pipeline(context, renderer->quad_pipeline);
+        dm_render_command_bind_index_buffer(context, renderer->quad_ib, 0);
+        dm_render_command_push_resources(context, quad_resources, 2);
+        dm_render_command_draw(context, 6, 1);
+    dm_render_command_end_rendering(context, renderer->swapchain);
 }

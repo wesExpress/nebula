@@ -1,5 +1,4 @@
 #include "application.h"
-#include "renderer.h"
 
 #ifndef NDEBUG
 #define NEBDEBUG
@@ -7,11 +6,9 @@
 
 int main(void)
 {
-    const size_t arena_size = sizeof(dm_context) + sizeof(renderer_t) + DM_KILABYTE;
-
     application app = { 0 };
 
-    if(application_init(&app, arena_size, 1080, 720, "nebula"))
+    if(application_init(&app, 1080, 720, "nebula"))
     {
         application_run(&app);
     }
