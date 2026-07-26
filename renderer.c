@@ -121,11 +121,13 @@ bool renderer_init(render_data *renderer, dm_context *context)
     dm_buffer_desc vb_desc = {
         .type=DM_BUFFER_TYPE_VERTEX,
         .size=sizeof(cube_vertices),
+        .stride=sizeof(vertex),
         .data=cube_vertices
     };
     dm_buffer_desc ib_desc = {
         .type=DM_BUFFER_TYPE_INDEX,
         .size=sizeof(cube_indices),
+        .stride=sizeof(cube_indices[0]),
         .data=cube_indices
     };
     if(!dm_renderer_create_buffer(context, vb_desc, &renderer->vb)) return false;
@@ -160,6 +162,7 @@ bool renderer_init(render_data *renderer, dm_context *context)
     dm_buffer_desc instb_desc = {
         .type=DM_BUFFER_TYPE_STORAGE,
         .size=sizeof(mat4) * MAX_INSTANCES * 2,
+        .stride=2 * sizeof(mat4)
     };
     for(u8 i=0; i<DM_FRAMES_IN_FLIGHT; i++)
     {
@@ -176,6 +179,7 @@ bool renderer_init(render_data *renderer, dm_context *context)
     dm_buffer_desc quad_ib_desc = {
         .type=DM_BUFFER_TYPE_INDEX,
         .size=sizeof(quad_indices),
+        .stride=sizeof(quad_indices[0]),
         .data=quad_indices
     };
 

@@ -1,6 +1,7 @@
 build/*
 lib/cglm/*
 .cache/*
+.DS_Store
 
 *.air
 *.metallib
