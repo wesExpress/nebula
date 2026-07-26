@@ -227,20 +227,20 @@ bool renderer_update(render_data *renderer, dm_context *context, instance_data *
         }
     }
 
-    if(dm_is_key_pressed(context, 65))
+    if(dm_key_is_pressed(context, DM_KEY_A))
     {
         renderer->cam_pos[0] -= 0.1f;
     }
-    else if(dm_is_key_pressed(context, 68))
+    else if(dm_key_is_pressed(context, DM_KEY_D))
     {
         renderer->cam_pos[0] += 0.1f;
     }
 
-    if(dm_is_key_pressed(context, 87))
+    if(dm_key_is_pressed(context, DM_KEY_W))
     {
         renderer->cam_pos[2] -= 0.1f;
     }
-    else if(dm_is_key_pressed(context, 83))
+    else if(dm_key_is_pressed(context, DM_KEY_S))
     {
         renderer->cam_pos[2] += 0.1f;
     }
