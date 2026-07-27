@@ -273,7 +273,7 @@ void renderer_render(render_data *renderer, dm_context *context, imgui_context *
         renderer->sampler,
     };
 
-    dm_render_command_begin_rendering(context, render_target, 0,0,0,1, 1.f);
+    dm_render_command_begin_rendering(context, render_target, 0,0,0,1, 1.f, DM_RENDER_LOAD_OP_CLEAR, DM_RENDER_STORE_OP_STORE, DM_RENDER_LOAD_OP_CLEAR, DM_RENDER_STORE_OP_STORE);
         dm_render_command_bind_pipeline(context, renderer->raster_pipeline);
         dm_render_command_bind_index_buffer(context, renderer->ib, 0);
         dm_render_command_push_resources(context, resources, 5);
@@ -309,36 +309,10 @@ void renderer_render(render_data *renderer, dm_context *context, imgui_context *
 
     dm_render_command_wait(context, renderer->synchronization[current_frame]);
 
-    dm_render_command_begin_rendering(context, renderer->swapchain, 1,0,1,1, 1);
+    dm_render_command_begin_rendering(context, renderer->swapchain, 1,0,1,1, 1, DM_RENDER_LOAD_OP_CLEAR, DM_RENDER_STORE_OP_STORE, DM_RENDER_LOAD_OP_CLEAR, DM_RENDER_STORE_OP_DONT_CARE);
         dm_render_command_bind_pipeline(context, renderer->quad_pipeline);
         dm_render_command_bind_index_buffer(context, renderer->quad_ib, 0);
         dm_render_command_push_resources(context, quad_resources, 2);
         dm_render_command_draw(context, 6, 0, 1);
-
-    // imgui
-    dm_resource imgui_resources[] = {
-        imgui_ctx->vb[current_frame],
-        imgui_ctx->scene[current_frame],
-        imgui_ctx->font_texture,
-        imgui_ctx->sampler
-    };
-
-    dm_render_command_bind_pipeline(context, imgui_ctx->pipeline);
-    dm_render_command_bind_index_buffer(context, imgui_ctx->ib[current_frame], 0);
-    dm_render_command_push_resources(context, imgui_resources, 4);
-
-    const struct nk_draw_command* cmd;
-    uint32_t offset = 0;
-    nk_draw_foreach(cmd, &imgui_ctx->nuklear_context, &imgui_ctx->commands)
-    {
-        if(!cmd->elem_count) continue;
-
-        dm_render_command_draw(context, cmd->elem_count, offset, 1);
-        offset += cmd->elem_count;
-    }
-    
-    nk_clear(&imgui_ctx->nuklear_context);
-    nk_buffer_clear(&imgui_ctx->commands);
-
     dm_render_command_end_rendering(context, renderer->swapchain);
 }

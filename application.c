@@ -80,8 +80,7 @@ void application_run(application *app)
         if(!dm_render_begin(&app->context)) break;
 
         renderer_render(&app->renderer, &app->context, &app->imgui_context);
-
-        imgui_render(&app->context, &app->imgui_context);
+        imgui_render(&app->context, &app->imgui_context, app->renderer.swapchain);
 
         if(!dm_render_end(&app->context))   break;
 

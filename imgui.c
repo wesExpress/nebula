@@ -110,7 +110,7 @@ bool imgui_init(dm_context *context, imgui_context *imgui_ctx)
         .color_dst_factor=DM_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA,
         .alpha_blend_op=DM_BLEND_OP_ADD,
         .alpha_src_factor=DM_BLEND_FACTOR_SRC_ALPHA,
-        .alpha_dst_factor=DM_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA,
+        .alpha_dst_factor=DM_BLEND_FACTOR_ONE,
 
         .winding=DM_WINDING_CLOCKWISE,
         .culling=DM_CULL_NONE,
@@ -280,9 +280,33 @@ void imgui_shutdown(imgui_context *context)
     nk_free(&context->nuklear_context);
 }
 
-void imgui_render(dm_context *context, imgui_context *imgui_ctx)
+void imgui_render(dm_context *context, imgui_context *imgui_ctx, dm_resource render_target)
 {
     //
     const u8 current_frame = context->renderer.current_frame;
 
+    dm_resource imgui_resources[] = {
+        imgui_ctx->vb[current_frame],
+        imgui_ctx->scene[current_frame],
+        imgui_ctx->font_texture,
+        imgui_ctx->sampler
+    };
+    
+    dm_render_command_begin_rendering(context, render_target, 0, 0, 0, 0, 1, DM_RENDER_LOAD_OP_LOAD, DM_RENDER_STORE_OP_STORE, DM_RENDER_LOAD_OP_LOAD, DM_RENDER_STORE_OP_DONT_CARE);
+        dm_render_command_bind_pipeline(context, imgui_ctx->pipeline);
+        dm_render_command_bind_index_buffer(context, imgui_ctx->ib[current_frame], 0);
+        dm_render_command_push_resources(context, imgui_resources, 4);
+        const struct nk_draw_command* cmd;
+        uint32_t offset = 0;
+        nk_draw_foreach(cmd, &imgui_ctx->nuklear_context, &imgui_ctx->commands)
+        {
+            if(!cmd->elem_count) continue;
+
+            dm_render_command_draw(context, cmd->elem_count, offset, 1);
+            offset += cmd->elem_count;
+        }
+    dm_render_command_end_rendering(context, render_target);
+
+    nk_clear(&imgui_ctx->nuklear_context);
+    nk_buffer_clear(&imgui_ctx->commands);
 }

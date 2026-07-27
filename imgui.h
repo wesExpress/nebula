@@ -40,7 +40,7 @@ typedef struct imgui_context_t
 
 bool imgui_init(dm_context *context, imgui_context *imgui_ctx);
 void imgui_update(dm_context *context, imgui_context *imgui_ctx);
-void imgui_render(dm_context *context, imgui_context *imgui_ctx);
+void imgui_render(dm_context *context, imgui_context *imgui_ctx, dm_resource render_target);
 void imgui_shutdown(imgui_context *context);
 
 #endif
