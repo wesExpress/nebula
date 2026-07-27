@@ -16,11 +16,11 @@ bool renderer_init(render_data *renderer, dm_context *context)
         .swapchain=false,
         .color_attachment.width=context->window.width,
         .color_attachment.height=context->window.height,
-        .color_attachment.load_op=DM_RENDER_ATTACHMENT_LOAD_OP_CLEAR,
-        .color_attachment.store_op=DM_RENDER_ATTACHMENT_STORE_OP_STORE,
+        .color_attachment.load_op=DM_RENDER_LOAD_OP_CLEAR,
+        .color_attachment.store_op=DM_RENDER_STORE_OP_STORE,
         .depth=true,
-        .depth_attachment.load_op=DM_RENDER_ATTACHMENT_LOAD_OP_CLEAR,
-        .depth_attachment.store_op=DM_RENDER_ATTACHMENT_STORE_OP_STORE,
+        .depth_attachment.load_op=DM_RENDER_LOAD_OP_CLEAR,
+        .depth_attachment.store_op=DM_RENDER_STORE_OP_STORE,
     };
 
     for(u8 i=0; i<DM_FRAMES_IN_FLIGHT; i++)
@@ -31,11 +31,11 @@ bool renderer_init(render_data *renderer, dm_context *context)
     // swapchain
     dm_render_target_desc swapchain_desc = {
         .swapchain=true,
-        .color_attachment.load_op=DM_RENDER_ATTACHMENT_LOAD_OP_CLEAR,
-        .color_attachment.store_op=DM_RENDER_ATTACHMENT_STORE_OP_STORE,
+        .color_attachment.load_op=DM_RENDER_LOAD_OP_CLEAR,
+        .color_attachment.store_op=DM_RENDER_STORE_OP_STORE,
         .depth=true,
-        .depth_attachment.load_op=DM_RENDER_ATTACHMENT_LOAD_OP_CLEAR,
-        .depth_attachment.store_op=DM_RENDER_ATTACHMENT_STORE_OP_DONT_CARE
+        .depth_attachment.load_op=DM_RENDER_LOAD_OP_CLEAR,
+        .depth_attachment.store_op=DM_RENDER_STORE_OP_DONT_CARE
     };
     if(!dm_renderer_create_render_target(context, swapchain_desc, &renderer->swapchain)) return false;
     
@@ -58,8 +58,13 @@ bool renderer_init(render_data *renderer, dm_context *context)
         .color_src_factor=DM_BLEND_FACTOR_SRC_ALPHA,
         .color_dst_factor=DM_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA,
         .alpha_blend_op=DM_BLEND_OP_ADD,
-        .alpha_src_factor=DM_BLEND_FACTOR_ONE,
-        .alpha_dst_factor=DM_BLEND_FACTOR_ZERO
+        .alpha_src_factor=DM_BLEND_FACTOR_SRC_ALPHA,
+        .alpha_dst_factor=DM_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA,
+
+        .winding=DM_WINDING_CLOCKWISE,
+        .culling=DM_CULL_BACK,
+        .fill=DM_FILL_FULL,
+        .primitive_type=DM_PRIMITIVE_TRIANGLE_LIST
     };
 
     if(!dm_renderer_create_raster_pipeline(context, quad_pipe_desc, &renderer->quad_pipeline)) return false;
@@ -78,13 +83,20 @@ bool renderer_init(render_data *renderer, dm_context *context)
         .shaders[DM_RASTER_SHADER_STAGE_VERTEX]=vertex_shader,
         .shaders[DM_RASTER_SHADER_STAGE_FRAGMENT]=fragment_shader,
 
+        .depth=true,
+
         .blend=true,
         .color_blend_op=DM_BLEND_OP_ADD,
         .color_src_factor=DM_BLEND_FACTOR_SRC_ALPHA,
         .color_dst_factor=DM_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA,
         .alpha_blend_op=DM_BLEND_OP_ADD,
-        .alpha_src_factor=DM_BLEND_FACTOR_ONE,
-        .alpha_dst_factor=DM_BLEND_FACTOR_ZERO
+        .alpha_src_factor=DM_BLEND_FACTOR_SRC_ALPHA,
+        .alpha_dst_factor=DM_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA,
+
+        .winding=DM_WINDING_CLOCKWISE,
+        .culling=DM_CULL_BACK,
+        .fill=DM_FILL_FULL,
+        .primitive_type=DM_PRIMITIVE_TRIANGLE_LIST
     };
 
     if(!dm_renderer_create_raster_pipeline(context, pipe_desc, &renderer->raster_pipeline)) return false;
@@ -185,18 +197,6 @@ bool renderer_init(render_data *renderer, dm_context *context)
 
     if(!dm_renderer_create_buffer(context, quad_ib_desc, &renderer->quad_ib)) return false;
 
-    // submit resources
-    dm_resource *resources[100] = { &renderer->vb, &renderer->ib, &renderer->quad_ib, &renderer->texture, &renderer->sampler };
-    u32 resource_count = 5;
-    for(u8 i=0; i<DM_FRAMES_IN_FLIGHT; i++)
-    {
-        resources[resource_count++] = &renderer->cb[i];
-        resources[resource_count++] = &renderer->instb[i];
-        resources[resource_count++] = &renderer->render_target[i];
-    }
-
-    if(!dm_renderer_upload_resources_to_heap(context, resources, resource_count)) return false;
-
     // synchronization
     for(u8 i=0; i<DM_FRAMES_IN_FLIGHT; i++)
     {
@@ -211,8 +211,6 @@ bool renderer_init(render_data *renderer, dm_context *context)
 bool renderer_update(render_data *renderer, dm_context *context, instance_data *instances)
 {
     const u8 current_frame = context->renderer.current_frame;
-
-    dm_render_command_update_begin(context);
 
     if(dm_window_resized(context))
     {
@@ -258,12 +256,10 @@ bool renderer_update(render_data *renderer, dm_context *context, instance_data *
     const size_t obj_size = sizeof(mat4) * MAX_INSTANCES * 2;
     dm_render_command_update_buffer(context, renderer->instb[current_frame], instances->obj, obj_size);
 
-    dm_render_command_update_end(context);
-
     return true;
 }
 
-void renderer_render(render_data *renderer, dm_context *context)
+void renderer_render(render_data *renderer, dm_context *context, imgui_context *imgui_ctx)
 {
     const u8 current_frame = context->renderer.current_frame;
     dm_resource render_target = renderer->render_target[current_frame];
@@ -281,7 +277,7 @@ void renderer_render(render_data *renderer, dm_context *context)
         dm_render_command_bind_pipeline(context, renderer->raster_pipeline);
         dm_render_command_bind_index_buffer(context, renderer->ib, 0);
         dm_render_command_push_resources(context, resources, 5);
-        dm_render_command_draw(context, 36, MAX_INSTANCES);
+        dm_render_command_draw(context, 36, 0, MAX_INSTANCES);
     dm_render_command_end_rendering(context, render_target);
 
     dm_render_command_signal(context, renderer->synchronization[current_frame]);
@@ -317,6 +313,32 @@ void renderer_render(render_data *renderer, dm_context *context)
         dm_render_command_bind_pipeline(context, renderer->quad_pipeline);
         dm_render_command_bind_index_buffer(context, renderer->quad_ib, 0);
         dm_render_command_push_resources(context, quad_resources, 2);
-        dm_render_command_draw(context, 6, 1);
+        dm_render_command_draw(context, 6, 0, 1);
+
+    // imgui
+    dm_resource imgui_resources[] = {
+        imgui_ctx->vb[current_frame],
+        imgui_ctx->scene[current_frame],
+        imgui_ctx->font_texture,
+        imgui_ctx->sampler
+    };
+
+    dm_render_command_bind_pipeline(context, imgui_ctx->pipeline);
+    dm_render_command_bind_index_buffer(context, imgui_ctx->ib[current_frame], 0);
+    dm_render_command_push_resources(context, imgui_resources, 4);
+
+    const struct nk_draw_command* cmd;
+    uint32_t offset = 0;
+    nk_draw_foreach(cmd, &imgui_ctx->nuklear_context, &imgui_ctx->commands)
+    {
+        if(!cmd->elem_count) continue;
+
+        dm_render_command_draw(context, cmd->elem_count, offset, 1);
+        offset += cmd->elem_count;
+    }
+    
+    nk_clear(&imgui_ctx->nuklear_context);
+    nk_buffer_clear(&imgui_ctx->commands);
+
     dm_render_command_end_rendering(context, renderer->swapchain);
 }

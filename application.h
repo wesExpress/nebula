@@ -4,12 +4,14 @@
 #include "DarkMatter/dm.h"
 #include "renderer.h"
 #include "instances.h"
+#include "imgui.h"
 
 typedef struct application_t
 {
     dm_context     context;
     render_data    renderer;
     instance_data *instances;
+    imgui_context  imgui_context;
 
     dm_arena arena;
 } application;
