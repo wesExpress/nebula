@@ -16,7 +16,7 @@ typedef struct render_data_t
     float aspect;
     float znear, zfar;
 
-    double frame_time;
+    float frame_time;
     u32 frame_count;
 
     /*****************
@@ -37,6 +37,7 @@ typedef struct render_data_t
     dm_resource imgui_constants;
 
     dm_pipeline compute_pipeline;
+    dm_resource compute_frame_data[DM_FRAMES_IN_FLIGHT];
 
     dm_resource synchronization[DM_FRAMES_IN_FLIGHT];
 } render_data;

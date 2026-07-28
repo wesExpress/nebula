@@ -51,6 +51,7 @@ bool application_init(application *app, u16 width, u16 height, const char *title
         resources[resource_count++] = &app->imgui_context.vb[i];
         resources[resource_count++] = &app->imgui_context.ib[i];
         resources[resource_count++] = &app->imgui_context.scene[i];
+        resources[resource_count++] = &app->renderer.compute_frame_data[i];
     }
 
     if(!dm_renderer_upload_resources_to_heap(&app->context, resources, resource_count)) return false;

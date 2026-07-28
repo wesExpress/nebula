@@ -53,7 +53,7 @@ bool renderer_init(render_data *renderer, dm_context *context)
         .alpha_src_factor=DM_BLEND_FACTOR_SRC_ALPHA,
         .alpha_dst_factor=DM_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA,
 
-        .winding=DM_WINDING_COUNTERCLOCKWISE,
+        .winding=DM_WINDING_CLOCKWISE,
         .culling=DM_CULL_BACK,
         .fill=DM_FILL_FULL,
         .primitive_type=DM_PRIMITIVE_TRIANGLE_LIST
@@ -85,7 +85,7 @@ bool renderer_init(render_data *renderer, dm_context *context)
         .alpha_src_factor=DM_BLEND_FACTOR_SRC_ALPHA,
         .alpha_dst_factor=DM_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA,
 
-        .winding=DM_WINDING_COUNTERCLOCKWISE,
+        .winding=DM_WINDING_CLOCKWISE,
         .culling=DM_CULL_BACK,
         .fill=DM_FILL_FULL,
         .primitive_type=DM_PRIMITIVE_TRIANGLE_LIST
@@ -93,12 +93,24 @@ bool renderer_init(render_data *renderer, dm_context *context)
 
     if(!dm_renderer_create_raster_pipeline(context, pipe_desc, &renderer->raster_pipeline)) return false;
 
+    // compute
     dm_compute_pipeline_desc compute_desc = {
         .shader.entry="c_main",
         .shader.path="../../assets/shaders/compute",
         .grp_x=GRID_X,.grp_y=GRID_Y,.grp_z=GRID_Z
     };
     if(!dm_renderer_create_compute_pipeline(context, compute_desc, &renderer->compute_pipeline)) return false;
+
+    dm_buffer_desc compute_buffer = {
+        .type=DM_BUFFER_TYPE_STORAGE,
+        .size=sizeof(float),
+        .stride=sizeof(float),
+    };
+
+    for(u8 i=0; i<DM_FRAMES_IN_FLIGHT; i++)
+    {
+        if(!dm_renderer_create_buffer(context, compute_buffer, &renderer->compute_frame_data[i])) return false;
+    }
 
     // texture
     int w,h,n;
@@ -248,6 +260,9 @@ bool renderer_update(render_data *renderer, dm_context *context, instance_data *
     const size_t obj_size = sizeof(mat4) * MAX_INSTANCES * 2;
     dm_render_command_update_buffer(context, renderer->instb[current_frame], instances->obj, obj_size);
 
+    renderer->frame_time += 0.05f;
+    dm_render_command_update_buffer(context, renderer->compute_frame_data[current_frame], &renderer->frame_time, sizeof(float));
+
     return true;
 }
 
@@ -276,6 +291,7 @@ void renderer_render(render_data *renderer, dm_context *context, imgui_context *
 
     // compute time
     dm_resource compute_resources[] = {
+        renderer->compute_frame_data[current_frame],
         render_target
     };
 
@@ -287,7 +303,7 @@ void renderer_render(render_data *renderer, dm_context *context, imgui_context *
 
     dm_compute_command_begin_recording(context);
         dm_compute_command_bind_pipeline(context, renderer->compute_pipeline);
-        dm_compute_command_push_resources(context, compute_resources, 1);
+        dm_compute_command_push_resources(context, compute_resources, 2);
         dm_compute_command_dispatch(context, dx, dy, dz);
     dm_compute_command_end_recording(context);
 

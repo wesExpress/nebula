@@ -110,9 +110,9 @@ bool imgui_init(dm_context *context, imgui_context *imgui_ctx)
         .color_dst_factor=DM_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA,
         .alpha_blend_op=DM_BLEND_OP_ADD,
         .alpha_src_factor=DM_BLEND_FACTOR_SRC_ALPHA,
-        .alpha_dst_factor=DM_BLEND_FACTOR_ONE,
+        .alpha_dst_factor=DM_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA,
 
-        .winding=DM_WINDING_COUNTERCLOCKWISE,
+        .winding=DM_WINDING_CLOCKWISE,
         .culling=DM_CULL_NONE,
         .fill=DM_FILL_FULL,
         .primitive_type=DM_PRIMITIVE_TRIANGLE_LIST
@@ -129,6 +129,7 @@ bool imgui_init(dm_context *context, imgui_context *imgui_ctx)
         .stride=sizeof(mat4),
         .data=ortho
     };
+
 
     dm_buffer_desc vb_desc = {
         .type=DM_BUFFER_TYPE_VERTEX,
@@ -148,9 +149,8 @@ bool imgui_init(dm_context *context, imgui_context *imgui_ctx)
         if(!dm_renderer_create_buffer(context, vb_desc, &imgui_ctx->vb[i]))       return false;
         if(!dm_renderer_create_buffer(context, ib_desc, &imgui_ctx->ib[i]))       return false;
 
-        // TODO: bad using malloc
-        imgui_ctx->vertices[i] = calloc(vertex_buffer_size, sizeof(imgui_vertex));
-        imgui_ctx->indices[i]  = calloc(index_buffer_size, sizeof(u16));
+        imgui_ctx->vertices[i] = malloc(vertex_buffer_size);
+        imgui_ctx->indices[i]  = malloc(index_buffer_size);
     }
 
     dm_sampler_desc sampler_desc = { 0 };
@@ -161,6 +161,7 @@ bool imgui_init(dm_context *context, imgui_context *imgui_ctx)
 
 void imgui_update(dm_context *context, imgui_context *imgui_ctx)
 {
+
     // nuklear input
     struct nk_context *nk_context = &imgui_ctx->nuklear_context;
 
