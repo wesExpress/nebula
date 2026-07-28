@@ -16,11 +16,7 @@ bool renderer_init(render_data *renderer, dm_context *context)
         .swapchain=false,
         .color_attachment.width=context->window.width,
         .color_attachment.height=context->window.height,
-        .color_attachment.load_op=DM_RENDER_LOAD_OP_CLEAR,
-        .color_attachment.store_op=DM_RENDER_STORE_OP_STORE,
         .depth=true,
-        .depth_attachment.load_op=DM_RENDER_LOAD_OP_CLEAR,
-        .depth_attachment.store_op=DM_RENDER_STORE_OP_STORE,
     };
 
     for(u8 i=0; i<DM_FRAMES_IN_FLIGHT; i++)
@@ -31,11 +27,7 @@ bool renderer_init(render_data *renderer, dm_context *context)
     // swapchain
     dm_render_target_desc swapchain_desc = {
         .swapchain=true,
-        .color_attachment.load_op=DM_RENDER_LOAD_OP_CLEAR,
-        .color_attachment.store_op=DM_RENDER_STORE_OP_STORE,
         .depth=true,
-        .depth_attachment.load_op=DM_RENDER_LOAD_OP_CLEAR,
-        .depth_attachment.store_op=DM_RENDER_STORE_OP_DONT_CARE
     };
     if(!dm_renderer_create_render_target(context, swapchain_desc, &renderer->swapchain)) return false;
     
@@ -61,7 +53,7 @@ bool renderer_init(render_data *renderer, dm_context *context)
         .alpha_src_factor=DM_BLEND_FACTOR_SRC_ALPHA,
         .alpha_dst_factor=DM_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA,
 
-        .winding=DM_WINDING_CLOCKWISE,
+        .winding=DM_WINDING_COUNTERCLOCKWISE,
         .culling=DM_CULL_BACK,
         .fill=DM_FILL_FULL,
         .primitive_type=DM_PRIMITIVE_TRIANGLE_LIST
@@ -93,7 +85,7 @@ bool renderer_init(render_data *renderer, dm_context *context)
         .alpha_src_factor=DM_BLEND_FACTOR_SRC_ALPHA,
         .alpha_dst_factor=DM_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA,
 
-        .winding=DM_WINDING_CLOCKWISE,
+        .winding=DM_WINDING_COUNTERCLOCKWISE,
         .culling=DM_CULL_BACK,
         .fill=DM_FILL_FULL,
         .primitive_type=DM_PRIMITIVE_TRIANGLE_LIST
