@@ -112,7 +112,7 @@ bool imgui_init(dm_context *context, imgui_context *imgui_ctx)
         .alpha_src_factor=DM_BLEND_FACTOR_SRC_ALPHA,
         .alpha_dst_factor=DM_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA,
 
-        .winding=DM_WINDING_CLOCKWISE,
+        .winding=DM_WINDING_COUNTERCLOCKWISE,
         .culling=DM_CULL_NONE,
         .fill=DM_FILL_FULL,
         .primitive_type=DM_PRIMITIVE_TRIANGLE_LIST

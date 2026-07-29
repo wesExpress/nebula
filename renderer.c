@@ -299,6 +299,7 @@ void renderer_render(render_data *renderer, dm_context *context, imgui_context *
     const u16 dy = (context->window.height + GRID_Y - 1) / GRID_Y;
     const u16 dz = GRID_Z;
 
+#if 0
     dm_compute_command_wait(context, renderer->synchronization[current_frame]);
 
     dm_compute_command_begin_recording(context);
@@ -308,6 +309,7 @@ void renderer_render(render_data *renderer, dm_context *context, imgui_context *
     dm_compute_command_end_recording(context);
 
     dm_compute_command_signal(context, renderer->synchronization[current_frame]);
+#endif
 
     // draw to screen
     dm_resource quad_resources[] = {
