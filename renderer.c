@@ -95,8 +95,8 @@ bool renderer_init(render_data *renderer, dm_context *context)
 
     // compute
     dm_compute_pipeline_desc compute_desc = {
-        .shader.entry="c_main",
         .shader.path="../../assets/shaders/compute",
+        .shader.entry="c_main",
         .grp_x=GRID_X,.grp_y=GRID_Y,.grp_z=GRID_Z
     };
     if(!dm_renderer_create_compute_pipeline(context, compute_desc, &renderer->compute_pipeline)) return false;
@@ -189,7 +189,7 @@ bool renderer_init(render_data *renderer, dm_context *context)
     // quad stuff
     u32 quad_indices[] = {
         0,1,2,
-        3,0,2,
+        2,3,0,
     };
 
     dm_buffer_desc quad_ib_desc = {

@@ -22,9 +22,9 @@ struct argument_buffer
 
 static constant vertex_in vertices[] = {
     { { -1,-1 }, { 0,0 }, },
-    { { -1, 1 }, { 0,1 }, },
-    { {  1, 1 }, { 1,1 }, },
     { {  1,-1 }, { 1,0 }, },
+    { {  1, 1 }, { 1,1 }, },
+    { { -1, 1 }, { 0,1 }, },
 };
 
 [[vertex]] 
