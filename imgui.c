@@ -104,7 +104,7 @@ bool imgui_init(dm_context *context, imgui_context *imgui_ctx)
         .shaders[DM_RASTER_SHADER_STAGE_FRAGMENT]=fragment_shader,
         .depth=false,
 
-        .blend=true,
+        .blend=false,
         .color_blend_op=DM_BLEND_OP_ADD,
         .color_src_factor=DM_BLEND_FACTOR_SRC_ALPHA,
         .color_dst_factor=DM_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA,

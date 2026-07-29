@@ -53,7 +53,7 @@ bool renderer_init(render_data *renderer, dm_context *context)
         .alpha_src_factor=DM_BLEND_FACTOR_SRC_ALPHA,
         .alpha_dst_factor=DM_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA,
 
-        .winding=DM_WINDING_CLOCKWISE,
+        .winding=DM_WINDING_COUNTERCLOCKWISE,
         .culling=DM_CULL_BACK,
         .fill=DM_FILL_FULL,
         .primitive_type=DM_PRIMITIVE_TRIANGLE_LIST
@@ -85,7 +85,7 @@ bool renderer_init(render_data *renderer, dm_context *context)
         .alpha_src_factor=DM_BLEND_FACTOR_SRC_ALPHA,
         .alpha_dst_factor=DM_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA,
 
-        .winding=DM_WINDING_CLOCKWISE,
+        .winding=DM_WINDING_COUNTERCLOCKWISE,
         .culling=DM_CULL_BACK,
         .fill=DM_FILL_FULL,
         .primitive_type=DM_PRIMITIVE_TRIANGLE_LIST
@@ -260,7 +260,7 @@ bool renderer_update(render_data *renderer, dm_context *context, instance_data *
     const size_t obj_size = sizeof(mat4) * MAX_INSTANCES * 2;
     dm_render_command_update_buffer(context, renderer->instb[current_frame], instances->obj, obj_size);
 
-    renderer->frame_time += 0.05f;
+    renderer->frame_time += 3.1415926535f / 180.f;
     dm_render_command_update_buffer(context, renderer->compute_frame_data[current_frame], &renderer->frame_time, sizeof(float));
 
     return true;
