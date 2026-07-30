@@ -39,19 +39,18 @@ bool application_init(application *app, u16 width, u16 height, const char *title
     resources[resource_count++] = &app->renderer.ib;
     resources[resource_count++] = &app->renderer.quad_ib;
     resources[resource_count++] = &app->renderer.texture;
-    resources[resource_count++] = &app->imgui_context.font_texture;
     resources[resource_count++] = &app->renderer.sampler;
-    resources[resource_count++] = &app->imgui_context.sampler;
 
     for(u8 i=0; i<DM_FRAMES_IN_FLIGHT; i++)
     {
         resources[resource_count++] = &app->renderer.cb[i];
         resources[resource_count++] = &app->renderer.instb[i];
         resources[resource_count++] = &app->renderer.render_target[i];
+        resources[resource_count++] = &app->renderer.compute_frame_data[i];
+
         resources[resource_count++] = &app->imgui_context.vb[i];
         resources[resource_count++] = &app->imgui_context.ib[i];
         resources[resource_count++] = &app->imgui_context.scene[i];
-        resources[resource_count++] = &app->renderer.compute_frame_data[i];
     }
 
     if(!dm_renderer_upload_resources_to_heap(&app->context, resources, resource_count)) return false;

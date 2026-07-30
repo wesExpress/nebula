@@ -3,16 +3,12 @@
 
 #include "DarkMatter/dm.h"
 
-#define NK_INCLUDE_FIXED_TYPES
-#define NK_INCLUDE_STANDARD_IO
-#define NK_INCLUDE_STANDARD_VARARGS
-#define NK_INCLUDE_DEFAULT_ALLOCATOR
-#define NK_INCLUDE_VERTEX_BUFFER_OUTPUT
-#define NK_INCLUDE_FONT_BAKING
-#define NK_INCLUDE_DEFAULT_FONT
-#include "Nuklear/nuklear.h"
-
 #include "microui/microui.h"
+
+#define IMGUI_MAX_VERTICES 1000
+#define IMGUI_MAX_INDICES  3000
+
+typedef u32 imgui_index;
 
 typedef struct imgui_vertex_t
 {
@@ -21,21 +17,19 @@ typedef struct imgui_vertex_t
     float color[4];
 } imgui_vertex;
 
+typedef struct imgui_frame_data_t
+{
+    imgui_vertex vertices[IMGUI_MAX_VERTICES];
+    imgui_index  indices[IMGUI_MAX_INDICES];
+
+    u32 vertex_count, index_count;
+} imgui_frame_data;
+
 typedef struct imgui_context_t
 {
-    struct nk_context nuklear_context;
-    struct nk_font_atlas font_atlas;
-    struct nk_buffer commands;
-    struct nk_draw_null_texture null_texture;
-
-    int max_vertex_buffer, int_max_index_buffer;
-
-    imgui_vertex *vertices[DM_FRAMES_IN_FLIGHT];
-    u16 *indices[DM_FRAMES_IN_FLIGHT];
-
     mu_Context *mu_ctx;
-    imgui_vertex *mu_vertices[DM_FRAMES_IN_FLIGHT];
-    u16 *mu_indices[DM_FRAMES_IN_FLIGHT];
+
+    imgui_frame_data frame_data[DM_FRAMES_IN_FLIGHT];
 
     // handles
     dm_pipeline pipeline;
