@@ -1,5 +1,6 @@
 #define NK_IMPLEMENTATION
 #include "imgui.h"
+#include "microui/microui.h"
 
 #include "cglm/cglm.h"
 
@@ -104,7 +105,7 @@ bool imgui_init(dm_context *context, imgui_context *imgui_ctx)
         .shaders[DM_RASTER_SHADER_STAGE_FRAGMENT]=fragment_shader,
         .depth=false,
 
-        .blend=false,
+        .blend=true,
         .color_blend_op=DM_BLEND_OP_ADD,
         .color_src_factor=DM_BLEND_FACTOR_SRC_ALPHA,
         .color_dst_factor=DM_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA,
@@ -129,7 +130,6 @@ bool imgui_init(dm_context *context, imgui_context *imgui_ctx)
         .stride=sizeof(mat4),
         .data=ortho
     };
-
 
     dm_buffer_desc vb_desc = {
         .type=DM_BUFFER_TYPE_VERTEX,
@@ -156,12 +156,15 @@ bool imgui_init(dm_context *context, imgui_context *imgui_ctx)
     dm_sampler_desc sampler_desc = { 0 };
     if(!dm_renderer_create_sampler(context, sampler_desc, &imgui_ctx->sampler)) return false;
 
+    // try mucroui instead
+    imgui_ctx->mu_ctx = malloc(sizeof(mu_Context));
+    mu_init(imgui_ctx->mu_ctx);
+
     return true;
 }
 
 void imgui_update(dm_context *context, imgui_context *imgui_ctx)
 {
-
     // nuklear input
     struct nk_context *nk_context = &imgui_ctx->nuklear_context;
 
@@ -265,6 +268,46 @@ void imgui_update(dm_context *context, imgui_context *imgui_ctx)
     glm_ortho(0, context->window.width, context->window.height, 0, -1.f, 1.f, ortho);
 
     dm_render_command_update_buffer(context, imgui_ctx->scene[current_frame], ortho, sizeof(ortho));
+
+    // mu stuff
+    if(dm_key_is_pressed(context, DM_KEY_LSHIFT)) mu_input_keydown(imgui_ctx->mu_ctx, MU_KEY_SHIFT);
+    else if(dm_key_just_released(context, DM_KEY_LSHIFT)) mu_input_keyup(imgui_ctx->mu_ctx, MU_KEY_SHIFT);
+
+    if(dm_key_is_pressed(context, DM_KEY_LCTRL)) mu_input_keydown(imgui_ctx->mu_ctx, MU_KEY_CTRL);
+    else if(dm_key_just_released(context, DM_KEY_LCTRL)) mu_input_keyup(imgui_ctx->mu_ctx, MU_KEY_CTRL);
+
+    if(dm_key_is_pressed(context, DM_KEY_LALT)) mu_input_keydown(imgui_ctx->mu_ctx, MU_KEY_ALT);
+    else if(dm_key_just_released(context, DM_KEY_LALT)) mu_input_keyup(imgui_ctx->mu_ctx, MU_KEY_ALT);
+
+    if(dm_key_is_pressed(context, DM_KEY_BACKSPACE)) mu_input_keydown(imgui_ctx->mu_ctx, MU_KEY_BACKSPACE);
+    else if(dm_key_just_released(context, DM_KEY_BACKSPACE)) mu_input_keyup(imgui_ctx->mu_ctx, MU_KEY_BACKSPACE);
+
+    if(dm_key_is_pressed(context, DM_KEY_ENTER)) mu_input_keydown(imgui_ctx->mu_ctx, MU_KEY_RETURN);
+    else if(dm_key_just_released(context, DM_KEY_ENTER)) mu_input_keyup(imgui_ctx->mu_ctx, MU_KEY_RETURN);
+
+    if(dm_mouse_button_is_pressed(context , DM_MOUSE_LEFT)) mu_input_mousedown(imgui_ctx->mu_ctx, mouse_x, mouse_y, MU_MOUSE_LEFT);
+    else if(dm_mouse_button_just_released(context, DM_MOUSE_LEFT)) mu_input_mouseup(imgui_ctx->mu_ctx, mouse_x, mouse_y, MU_MOUSE_LEFT);
+
+    if(dm_mouse_button_is_pressed(context , DM_MOUSE_RIGHT)) mu_input_mousedown(imgui_ctx->mu_ctx, mouse_x, mouse_y, MU_MOUSE_RIGHT);
+    else if(dm_mouse_button_just_released(context, DM_MOUSE_RIGHT)) mu_input_mouseup(imgui_ctx->mu_ctx, mouse_x, mouse_y, MU_MOUSE_RIGHT);
+
+    if(dm_mouse_button_is_pressed(context , DM_MOUSE_MIDDLE)) mu_input_mousedown(imgui_ctx->mu_ctx, mouse_x, mouse_y, MU_MOUSE_MIDDLE);
+    else if(dm_mouse_button_just_released(context, DM_MOUSE_MIDDLE)) mu_input_mouseup(imgui_ctx->mu_ctx, mouse_x, mouse_y, MU_MOUSE_MIDDLE);
+
+    mu_input_mousemove(imgui_ctx->mu_ctx, mouse_x, mouse_y);
+
+    mu_Command *mu_cmd = NULL;
+    while(mu_next_command(imgui_ctx->mu_ctx, &mu_cmd))
+    {
+        switch(mu_cmd->type)
+        {
+            case MU_COMMAND_RECT:
+                break;
+
+            default:
+                break;
+        }
+    }
 }
 
 void imgui_shutdown(imgui_context *context)
@@ -278,6 +321,8 @@ void imgui_shutdown(imgui_context *context)
     nk_buffer_free(&context->commands);
     nk_font_atlas_clear(&context->font_atlas);
     nk_free(&context->nuklear_context);
+
+    free(context->mu_ctx);
 }
 
 void imgui_render(dm_context *context, imgui_context *imgui_ctx, dm_resource render_target)
@@ -305,6 +350,8 @@ void imgui_render(dm_context *context, imgui_context *imgui_ctx, dm_resource ren
             dm_render_command_draw(context, cmd->elem_count, offset, 1);
             offset += cmd->elem_count;
         }
+
+
     dm_render_command_end_rendering(context, render_target);
 
     nk_clear(&imgui_ctx->nuklear_context);

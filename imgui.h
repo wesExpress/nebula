@@ -12,6 +12,8 @@
 #define NK_INCLUDE_DEFAULT_FONT
 #include "Nuklear/nuklear.h"
 
+#include "microui/microui.h"
+
 typedef struct imgui_vertex_t
 {
     float pos[2];
@@ -30,6 +32,10 @@ typedef struct imgui_context_t
 
     imgui_vertex *vertices[DM_FRAMES_IN_FLIGHT];
     u16 *indices[DM_FRAMES_IN_FLIGHT];
+
+    mu_Context *mu_ctx;
+    imgui_vertex *mu_vertices[DM_FRAMES_IN_FLIGHT];
+    u16 *mu_indices[DM_FRAMES_IN_FLIGHT];
 
     // handles
     dm_pipeline pipeline;
