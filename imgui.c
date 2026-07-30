@@ -1,6 +1,9 @@
 #include "imgui.h"
 #include "microui/microui.h"
 
+#define STB_TRUETYPE_IMPLEMENTATION
+#include "stb_truetype/stb_truetype.h"
+
 #include "cglm/cglm.h"
 
 #include <stdlib.h>
@@ -199,25 +202,25 @@ void imgui_update(dm_context *context, imgui_context *imgui_ctx)
     mu_begin(imgui_ctx->mu_ctx);
 
     if (mu_begin_window(ctx, "My Window", mu_rect(10, 10, 140, 86))) {
-  mu_layout_row(ctx, 2, (int[]) { 60, -1 }, 0);
+        mu_layout_row(ctx, 2, (int[]) { 60, -1 }, 0);
 
-  mu_label(ctx, "First:");
-  if (mu_button(ctx, "Button1")) {
-    printf("Button1 pressed\n");
-  }
+        mu_label(ctx, "First:");
+        if (mu_button(ctx, "Button1")) {
+            printf("Button1 pressed\n");
+        }
 
-  mu_label(ctx, "Second:");
-  if (mu_button(ctx, "Button2")) {
-    mu_open_popup(ctx, "My Popup");
-  }
+        mu_label(ctx, "Second:");
+        if (mu_button(ctx, "Button2")) {
+            mu_open_popup(ctx, "My Popup");
+        }
 
-  if (mu_begin_popup(ctx, "My Popup")) {
-    mu_label(ctx, "Hello world!");
-    mu_end_popup(ctx);
-  }
+        if (mu_begin_popup(ctx, "My Popup")) {
+            mu_label(ctx, "Hello world!");
+            mu_end_popup(ctx);
+        }
 
-  mu_end_window(ctx);
-}
+        mu_end_window(ctx);
+    }
 
     mu_end(imgui_ctx->mu_ctx);
 
