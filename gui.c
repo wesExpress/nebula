@@ -126,13 +126,12 @@ bool gui_end_frame(dm_context *context, gui_context *gui_ctx)
                 default:
                 case ImTextureStatus_OK: continue;
 
-                case ImTextureStatus_WantCreate: gui_create_texture(context, tex, &gui_ctx->resources.texture); break;
+                case ImTextureStatus_WantCreate:  gui_create_texture(context, tex, &gui_ctx->resources.texture); break;
                 case ImTextureStatus_WantUpdates: gui_update_texture(context, tex, gui_ctx->resources.texture); break;
                 case ImTextureStatus_WantDestroy:
                     LOG_INFO("DESTROY");
                 break;
             }
-
         }
     }
 
@@ -174,7 +173,14 @@ void gui_render(dm_context *context, gui_context *gui_ctx, dm_resource render_ta
 
     u32 index_offset = 0;
 
+    int width  = draw_data->DisplaySize.x ;
+    int height = draw_data->DisplaySize.y ;
+
+    ImVec2 clip_off = draw_data->DisplayPos;
+
     dm_render_command_begin_rendering(context, render_target, 0, 0, 0, 1, 1, DM_RENDER_LOAD_OP_LOAD, DM_RENDER_STORE_OP_STORE, DM_RENDER_LOAD_OP_DONT_CARE, DM_RENDER_STORE_OP_DONT_CARE);
+        dm_render_command_set_viewport(context, 0, 0, width, height, 0, 1.f);
+        dm_render_command_set_scissor(context, 0, 0, width, height);
         dm_render_command_bind_pipeline(context, gui_ctx->resources.pipeline);
         dm_render_command_push_resources(context, resources, 4);
         dm_render_command_bind_index_buffer(context, gui_ctx->resources.ib[current_frame], 0);
@@ -186,6 +192,17 @@ void gui_render(dm_context *context, gui_context *gui_ctx, dm_resource render_ta
             for(u32 j=0; j<list->CmdBuffer.Size; j++)
             {
                 const ImDrawCmd *cmd = &list->CmdBuffer.Data[j];
+                if(cmd->ElemCount == 0) continue;
+
+                ImVec2 clip_min = { cmd->ClipRect.x, cmd->ClipRect.y };
+                ImVec2 clip_max = { cmd->ClipRect.z, cmd->ClipRect.w };
+                if(clip_min.x < 0.f) clip_min.x = 0.f;
+                if(clip_min.y < 0.f) clip_min.y = 0.f;
+                if(clip_max.x > (float)width) clip_min.x = (float)width;
+                if(clip_max.y > (float)height) clip_min.y = (float)height;
+                if(clip_max.x <= clip_min.x || clip_max.y <= clip_min.y) continue;
+
+                dm_render_command_set_scissor(context, clip_min.x, clip_min.y, clip_max.x-clip_min.x, clip_max.y-clip_min.y);
 
                 dm_render_command_draw(context, cmd->ElemCount, index_offset, 1);
             }

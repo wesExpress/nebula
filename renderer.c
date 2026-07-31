@@ -269,7 +269,6 @@ bool renderer_update(render_data *renderer, dm_context *context, instance_data *
     renderer->frame_time += 3.1415926535f / 180.f;
     dm_render_command_update_buffer(context, renderer->compute_frame_data[current_frame], &renderer->frame_time, sizeof(float), 0);
 
-
     return true;
 }
 
@@ -287,7 +286,12 @@ void renderer_render(render_data *renderer, dm_context *context)
         renderer->sampler,
     };
 
+    const int width = context->window.width;
+    const int height = context->window.height;
+
     dm_render_command_begin_rendering(context, render_target, 0,0,0,1, 1.f, DM_RENDER_LOAD_OP_CLEAR, DM_RENDER_STORE_OP_STORE, DM_RENDER_LOAD_OP_CLEAR, DM_RENDER_STORE_OP_STORE);
+        dm_render_command_set_viewport(context, 0,0, width, height, 0, 1.f);
+        dm_render_command_set_scissor(context, 0,0, width, height);
         dm_render_command_bind_pipeline(context, renderer->raster_pipeline);
         dm_render_command_bind_index_buffer(context, renderer->ib, 0);
         dm_render_command_push_resources(context, resources, 5);
@@ -327,6 +331,8 @@ void renderer_render(render_data *renderer, dm_context *context)
     dm_render_command_wait(context, renderer->synchronization[current_frame]);
 
     dm_render_command_begin_rendering(context, renderer->swapchain, 1,0,1,1, 1, DM_RENDER_LOAD_OP_CLEAR, DM_RENDER_STORE_OP_STORE, DM_RENDER_LOAD_OP_CLEAR, DM_RENDER_STORE_OP_DONT_CARE);
+        dm_render_command_set_viewport(context, 0,0, width, height, 0, 1.f);
+        dm_render_command_set_scissor(context, 0,0, width, height);
         dm_render_command_bind_pipeline(context, renderer->quad_pipeline);
         dm_render_command_bind_index_buffer(context, renderer->quad_ib, 0);
         dm_render_command_push_resources(context, quad_resources, 2);
