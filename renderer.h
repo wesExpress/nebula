@@ -3,7 +3,6 @@
 
 #include "DarkMatter/dm.h"
 
-#include "imgui.h"
 #include "instances.h" 
 #include "cglm/cglm.h"
 
@@ -44,6 +43,6 @@ typedef struct render_data_t
 
 bool renderer_init(render_data *renderer, dm_context *context);
 bool renderer_update(render_data *renderer, dm_context *context, instance_data* instances);
-void renderer_render(render_data *renderer, dm_context *context, imgui_context *imgui_ctx);
+void renderer_render(render_data *renderer, dm_context *context);
 
 #endif // __VOXEL_RENDERER_H__

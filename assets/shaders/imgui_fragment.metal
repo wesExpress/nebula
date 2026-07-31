@@ -19,8 +19,8 @@ struct argument_buffer
 {
     device vertex_in   *vertices;
     device imgui_scene *scene;
-    //texture2d<float>    font_texture;
-    //sampler             s;
+    texture2d<float>    font_texture;
+    sampler             s;
 };
 
 struct vertex_out

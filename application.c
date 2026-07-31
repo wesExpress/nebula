@@ -19,11 +19,6 @@ bool application_init(application *app, u16 width, u16 height, const char *title
      ************/
     if(!renderer_init(&app->renderer, &app->context)) return false;
 
-    /******** 
-     * IMGUI
-     *********/
-    if(!imgui_init(&app->context, &app->imgui_context)) return false;
-
     /************
      * INSTANCES 
      *************/
@@ -47,10 +42,6 @@ bool application_init(application *app, u16 width, u16 height, const char *title
         resources[resource_count++] = &app->renderer.instb[i];
         resources[resource_count++] = &app->renderer.render_target[i];
         resources[resource_count++] = &app->renderer.compute_frame_data[i];
-
-        resources[resource_count++] = &app->imgui_context.vb[i];
-        resources[resource_count++] = &app->imgui_context.ib[i];
-        resources[resource_count++] = &app->imgui_context.scene[i];
     }
 
     if(!dm_renderer_upload_resources_to_heap(&app->context, resources, resource_count)) return false;
@@ -68,7 +59,6 @@ void application_run(application *app)
         if(!dm_update_begin(&app->context)) break;
         dm_render_command_update_begin(&app->context);
 
-        imgui_update(&app->context, &app->imgui_context);
         instances_update(app->instances);
 
         if(!renderer_update(&app->renderer, &app->context, app->instances)) break;
@@ -79,8 +69,7 @@ void application_run(application *app)
          **********/
         if(!dm_render_begin(&app->context)) break;
 
-        renderer_render(&app->renderer, &app->context, &app->imgui_context);
-        imgui_render(&app->context, &app->imgui_context, app->renderer.swapchain);
+        renderer_render(&app->renderer, &app->context);
 
         if(!dm_render_end(&app->context))   break;
 
@@ -93,7 +82,6 @@ void application_run(application *app)
 
 void application_shutdown(application *app)
 {
-    imgui_shutdown(&app->imgui_context);
     dm_shutdown(&app->context);
 
     dm_arena_detroy(&app->arena);

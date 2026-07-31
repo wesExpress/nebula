@@ -266,7 +266,7 @@ bool renderer_update(render_data *renderer, dm_context *context, instance_data *
     return true;
 }
 
-void renderer_render(render_data *renderer, dm_context *context, imgui_context *imgui_ctx)
+void renderer_render(render_data *renderer, dm_context *context)
 {
     const u8 current_frame = context->renderer.current_frame;
     dm_resource render_target = renderer->render_target[current_frame];
@@ -299,7 +299,7 @@ void renderer_render(render_data *renderer, dm_context *context, imgui_context *
     const u16 dy = (context->window.height + GRID_Y - 1) / GRID_Y;
     const u16 dz = GRID_Z;
 
-#if 0
+#if 1
     dm_compute_command_wait(context, renderer->synchronization[current_frame]);
 
     dm_compute_command_begin_recording(context);
