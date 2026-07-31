@@ -19,6 +19,11 @@ bool application_init(application *app, u16 width, u16 height, const char *title
      ************/
     if(!renderer_init(&app->renderer, &app->context)) return false;
 
+    /********
+     * IMGUI 
+     *********/
+    if(!gui_init(&app->context, &app->gui_ctx)) return false;
+
     /************
      * INSTANCES 
      *************/
@@ -36,12 +41,18 @@ bool application_init(application *app, u16 width, u16 height, const char *title
     resources[resource_count++] = &app->renderer.texture;
     resources[resource_count++] = &app->renderer.sampler;
 
+    resources[resource_count++] = &app->gui_ctx.resources.linear_sampler;
+
     for(u8 i=0; i<DM_FRAMES_IN_FLIGHT; i++)
     {
         resources[resource_count++] = &app->renderer.cb[i];
         resources[resource_count++] = &app->renderer.instb[i];
         resources[resource_count++] = &app->renderer.render_target[i];
         resources[resource_count++] = &app->renderer.compute_frame_data[i];
+
+        resources[resource_count++] = &app->gui_ctx.resources.vb[i];
+        resources[resource_count++] = &app->gui_ctx.resources.ib[i];
+        resources[resource_count++] = &app->gui_ctx.resources.scene[i];
     }
 
     if(!dm_renderer_upload_resources_to_heap(&app->context, resources, resource_count)) return false;
@@ -57,11 +68,15 @@ void application_run(application *app)
          * BEGIN FRAME
          ***************/
         if(!dm_update_begin(&app->context)) break;
+
         dm_render_command_update_begin(&app->context);
+            gui_new_frame(&app->context, &app->gui_ctx);
 
-        instances_update(app->instances);
+            instances_update(app->instances);
 
-        if(!renderer_update(&app->renderer, &app->context, app->instances)) break;
+            if(!renderer_update(&app->renderer, &app->context, app->instances)) break;
+            if(!gui_end_frame(&app->context, &app->gui_ctx)) break;
+
         dm_render_command_update_end(&app->context);
 
         /*********
@@ -70,6 +85,7 @@ void application_run(application *app)
         if(!dm_render_begin(&app->context)) break;
 
         renderer_render(&app->renderer, &app->context);
+        gui_render(&app->context, &app->gui_ctx, app->renderer.swapchain);
 
         if(!dm_render_end(&app->context))   break;
 

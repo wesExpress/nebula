@@ -9,6 +9,8 @@
 #define GRID_Y 16
 #define GRID_Z 1
 
+#include "imgui/dcimgui.h"
+
 bool renderer_init(render_data *renderer, dm_context *context)
 {
     // render target
@@ -119,10 +121,10 @@ bool renderer_init(render_data *renderer, dm_context *context)
     if(!texture_data) return false;
 
     dm_texture2d_desc texture_desc = {
+        .type=DM_TEXTURE2D_TYPE_SAMPLED,
+        .format=DM_TEXTURE2D_FORMAT_R8G8B8A8_UNORM,
         .width=w,
         .height=h,
-        .size=sizeof(u32) * w * h,
-        .type=DM_TEXTURE2D_TYPE_SAMPLED,
         .data=texture_data
     };
     if(!dm_renderer_create_texture(context, texture_desc, &renderer->texture)) return false;
@@ -130,7 +132,11 @@ bool renderer_init(render_data *renderer, dm_context *context)
     stbi_image_free(texture_data);
 
     // sampler
-    dm_sampler_desc sampler_desc = { 0 };
+    dm_sampler_desc sampler_desc = { 
+        .min=DM_SAMPLER_FILTER_NEAREST,
+        .mag=DM_SAMPLER_FILTER_NEAREST,
+        .mip=DM_SAMPLER_FILTER_NEAREST
+    };
     if(!dm_renderer_create_sampler(context, sampler_desc, &renderer->sampler)) return false;
 
     // buffers
@@ -255,13 +261,14 @@ bool renderer_update(render_data *renderer, dm_context *context, instance_data *
     glm_perspective(renderer->fov, renderer->aspect, renderer->znear, renderer->zfar, proj);
     glm_mat4_mul(proj, view, view_proj);
 
-    dm_render_command_update_buffer(context, renderer->cb[current_frame], view_proj, sizeof(view_proj));
+    dm_render_command_update_buffer(context, renderer->cb[current_frame], view_proj, sizeof(view_proj), 0);
 
     const size_t obj_size = sizeof(mat4) * MAX_INSTANCES * 2;
-    dm_render_command_update_buffer(context, renderer->instb[current_frame], instances->obj, obj_size);
+    dm_render_command_update_buffer(context, renderer->instb[current_frame], instances->obj, obj_size, 0);
 
     renderer->frame_time += 3.1415926535f / 180.f;
-    dm_render_command_update_buffer(context, renderer->compute_frame_data[current_frame], &renderer->frame_time, sizeof(float));
+    dm_render_command_update_buffer(context, renderer->compute_frame_data[current_frame], &renderer->frame_time, sizeof(float), 0);
+
 
     return true;
 }

@@ -7,7 +7,7 @@ struct vertex_in
 {
     packed_float2 position;
     packed_float2 uv;
-    float4 color;
+    uchar4 color;
 };
 
 struct imgui_scene
@@ -42,8 +42,8 @@ fragment_out f_main(
 {
     fragment_out f_out;
 
-    //f_out.color = arg.font_texture.sample(arg.s, v.uv);
-    f_out.color = v.color;
+    f_out.color = arg.font_texture.sample(arg.s, v.uv);
+    f_out.color *= v.color;
 
     return f_out;
 }
