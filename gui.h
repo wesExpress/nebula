@@ -3,14 +3,6 @@
 
 #include "DarkMatter/dm.h"
 
-typedef struct gui_vertex_t
-{
-    float position[2];
-    float uv[2];
-    u8    color[4];
-} gui_vertex;
-
-typedef u16 gui_index;
 #define GUI_MAX_VERTICES 64000
 #define GUI_MAX_INDICES  UINT16_MAX 
 
@@ -27,9 +19,6 @@ typedef struct gui_resources_t
 typedef struct gui_context_t
 {
     gui_resources resources;
-
-    gui_vertex vertices[DM_FRAMES_IN_FLIGHT][GUI_MAX_VERTICES];
-    gui_index  indices[DM_FRAMES_IN_FLIGHT][GUI_MAX_INDICES];
 } gui_context;
 
 bool gui_init(dm_context *context, gui_context *gui_ctx);

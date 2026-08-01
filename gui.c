@@ -51,13 +51,13 @@ bool gui_init(dm_context *context, gui_context *gui_ctx)
 
     dm_buffer_desc vb_desc = {
         .type=DM_BUFFER_TYPE_VERTEX,
-        .size=sizeof(gui_vertex) * GUI_MAX_VERTICES,
-        .stride=sizeof(gui_vertex)
+        .size=sizeof(ImDrawVert) * GUI_MAX_VERTICES,
+        .stride=sizeof(ImDrawVert)
     };
     dm_buffer_desc ib_desc = {
         .type=DM_BUFFER_TYPE_INDEX,
-        .size=sizeof(gui_index) * GUI_MAX_INDICES,
-        .stride=sizeof(gui_index)
+        .size=sizeof(ImDrawIdx) * GUI_MAX_INDICES,
+        .stride=sizeof(ImDrawIdx)
     };
     dm_buffer_desc cb_desc = {
         .type=DM_BUFFER_TYPE_STORAGE,
@@ -76,8 +76,29 @@ bool gui_init(dm_context *context, gui_context *gui_ctx)
 
 void gui_new_frame(dm_context *context, gui_context *gui_ctx)
 {
+    ImGuiIO *io = ImGui_GetIO();
     ImGui_NewFrame();
     ImGui_ShowDemoWindow(&demo);
+
+    static float f = 0.0f;
+    static int counter = 0;
+
+    ImGui_Begin("Hello, world!", NULL, 0);                          // Create a window called "Hello, world!" and append into it.
+
+    ImGui_Text("This is some useful text.");               // Display some text (you can use a format strings too)
+    ImGui_Checkbox("Demo Window", &demo);      // Edit bools storing our window open/close state
+    ImGui_Checkbox("Another Window", &demo);
+
+    ImGui_SliderFloat("float", &f, 0.0f, 1.0f);            // Edit 1 float using a slider from 0.0f to 1.0f
+    //ImGui_ColorEdit3("clear color", (float*)&clear_color); // Edit 3 floats representing a color
+
+    if (ImGui_Button("Button"))                            // Buttons return true when clicked (most widgets return true when edited/activated)
+        counter++;
+    ImGui_SameLine();
+    ImGui_Text("counter = %d", counter);
+
+    ImGui_Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / io->Framerate, io->Framerate);
+    ImGui_End();
 }
 
 bool gui_create_texture(dm_context *context, ImTextureData *tex, dm_resource *resource)
