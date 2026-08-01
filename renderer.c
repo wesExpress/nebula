@@ -295,7 +295,7 @@ void renderer_render(render_data *renderer, dm_context *context)
         dm_render_command_bind_pipeline(context, renderer->raster_pipeline);
         dm_render_command_bind_index_buffer(context, renderer->ib, 0);
         dm_render_command_push_resources(context, resources, 5);
-        dm_render_command_draw(context, 36, 0, MAX_INSTANCES);
+        dm_render_command_draw(context, 36, 0, MAX_INSTANCES, 0);
     dm_render_command_end_rendering(context, render_target);
 
     dm_render_command_signal(context, renderer->synchronization[current_frame]);
@@ -336,6 +336,6 @@ void renderer_render(render_data *renderer, dm_context *context)
         dm_render_command_bind_pipeline(context, renderer->quad_pipeline);
         dm_render_command_bind_index_buffer(context, renderer->quad_ib, 0);
         dm_render_command_push_resources(context, quad_resources, 2);
-        dm_render_command_draw(context, 6, 0, 1);
+        dm_render_command_draw(context, 6, 0, 1, 0);
     dm_render_command_end_rendering(context, renderer->swapchain);
 }

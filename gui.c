@@ -206,6 +206,7 @@ void gui_render(dm_context *context, gui_context *gui_ctx, dm_resource render_ta
         dm_render_command_push_resources(context, resources, 4);
         dm_render_command_bind_index_buffer(context, gui_ctx->resources.ib[current_frame], 0);
 
+        u32 vertex_offset = 0;
         for(u32 i=0; i<draw_data->CmdListsCount; i++)
         {
             ImDrawList *list = draw_data->CmdLists.Data[i];
@@ -225,9 +226,10 @@ void gui_render(dm_context *context, gui_context *gui_ctx, dm_resource render_ta
 
                 dm_render_command_set_scissor(context, clip_min.x, clip_min.y, clip_max.x-clip_min.x, clip_max.y-clip_min.y);
 
-                dm_render_command_draw(context, cmd->ElemCount, index_offset, 1);
+                dm_render_command_draw(context, cmd->ElemCount, index_offset, 1, vertex_offset);
             }
 
+            vertex_offset += list->VtxBuffer.Size;
             index_offset += (size_t)list->IdxBuffer.Size * sizeof(ImDrawIdx);
         }
 
