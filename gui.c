@@ -71,17 +71,21 @@ bool gui_init(dm_context *context, gui_context *gui_ctx)
         if(!dm_renderer_create_buffer(context, cb_desc, &gui_ctx->resources.scene[i])) return false;
     }
 
+    ImGuiIO *io = ImGui_GetIO();
+
     return true;
 }
 
 void gui_new_frame(dm_context *context, gui_context *gui_ctx)
 {
-    ImGuiIO *io = ImGui_GetIO();
     ImGui_NewFrame();
+
+    ImGuiIO *io = ImGui_GetIO();
     ImGui_ShowDemoWindow(&demo);
 
     static float f = 0.0f;
     static int counter = 0;
+    static ImColor clear_color;
 
     ImGui_Begin("Hello, world!", NULL, 0);                          // Create a window called "Hello, world!" and append into it.
 
@@ -90,7 +94,7 @@ void gui_new_frame(dm_context *context, gui_context *gui_ctx)
     ImGui_Checkbox("Another Window", &demo);
 
     ImGui_SliderFloat("float", &f, 0.0f, 1.0f);            // Edit 1 float using a slider from 0.0f to 1.0f
-    //ImGui_ColorEdit3("clear color", (float*)&clear_color); // Edit 3 floats representing a color
+    ImGui_ColorEdit3("clear color", (float*)&clear_color, 0); // Edit 3 floats representing a color
 
     if (ImGui_Button("Button"))                            // Buttons return true when clicked (most widgets return true when edited/activated)
         counter++;
@@ -110,23 +114,25 @@ bool gui_create_texture(dm_context *context, ImTextureData *tex, dm_resource *re
         .height=tex->Height,
         .data=tex->Pixels,
     };
-    tex->Status = ImTextureStatus_OK;
 
     if(!dm_renderer_create_texture(context, desc, resource))         return false;
     if(!dm_renderer_upload_resources_to_heap(context, &resource, 1)) return false;
+
+    ImTextureData_SetStatus(tex, ImTextureStatus_OK);
 
     return true;
 }
 
 void gui_update_texture(dm_context *context, ImTextureData *tex, dm_resource resource)
 {
-    for(u32 j=0; j<tex->Updates.Size; j++)
+    for(u32 i=0; i<tex->Updates.Size; i++)
     {
-        ImTextureRect rect = tex->Updates.Data[j];
-        dm_render_command_update_texture(context, resource, tex->Pixels, rect.x, rect.y, rect.w, rect.h);
+        ImTextureRect r = tex->Updates.Data[i];
+        LOG_INFO("%u %u %u %u", r.x,r.y,r.w,r.h);
+        dm_render_command_update_texture(context, resource, ImTextureData_GetPixelsAt(tex, r.x, r.y), r.x, r.y, r.w, r.h);
     }
 
-    tex->Status = ImTextureStatus_OK;
+    ImTextureData_SetStatus(tex, ImTextureStatus_OK);
 }
 
 bool gui_end_frame(dm_context *context, gui_context *gui_ctx)
@@ -147,7 +153,9 @@ bool gui_end_frame(dm_context *context, gui_context *gui_ctx)
                 default:
                 case ImTextureStatus_OK: continue;
 
-                case ImTextureStatus_WantCreate:  gui_create_texture(context, tex, &gui_ctx->resources.texture); break;
+                case ImTextureStatus_WantCreate:  
+                    if(gui_create_texture(context, tex, &gui_ctx->resources.texture)) break;
+                    return false;
                 case ImTextureStatus_WantUpdates: gui_update_texture(context, tex, gui_ctx->resources.texture); break;
                 case ImTextureStatus_WantDestroy:
                     LOG_INFO("DESTROY");
@@ -163,11 +171,14 @@ bool gui_end_frame(dm_context *context, gui_context *gui_ctx)
     {
         ImDrawList *list = draw_data->CmdLists.Data[i];
 
-        dm_render_command_update_buffer(context, gui_ctx->resources.vb[current_frame], list->VtxBuffer.Data, list->VtxBuffer.Size * sizeof(ImDrawVert), vertex_offset);
-        dm_render_command_update_buffer(context, gui_ctx->resources.ib[current_frame], list->IdxBuffer.Data, list->IdxBuffer.Size * sizeof(ImDrawIdx), index_offset);
+        size_t vb_size = list->VtxBuffer.Size * sizeof(ImDrawVert);
+        size_t ib_size = list->IdxBuffer.Size * sizeof(ImDrawIdx);
 
-        vertex_offset += (size_t)list->VtxBuffer.Size * sizeof(ImDrawVert);
-        index_offset  += (size_t)list->IdxBuffer.Size * sizeof(ImDrawIdx);
+        dm_render_command_update_buffer(context, gui_ctx->resources.vb[current_frame], list->VtxBuffer.Data, vb_size, vertex_offset);
+        dm_render_command_update_buffer(context, gui_ctx->resources.ib[current_frame], list->IdxBuffer.Data, ib_size, index_offset);
+
+        vertex_offset += vb_size;
+        index_offset  += ib_size;
     }
 
     // projection matrix
@@ -179,7 +190,7 @@ bool gui_end_frame(dm_context *context, gui_context *gui_ctx)
     return true;
 }
 
-void gui_render(dm_context *context, gui_context *gui_ctx, dm_resource render_target)
+void gui_render(dm_context *context, gui_context *gui_ctx)
 {
     const u8 current_frame = context->renderer.current_frame;
 
@@ -192,46 +203,47 @@ void gui_render(dm_context *context, gui_context *gui_ctx, dm_resource render_ta
         gui_ctx->resources.linear_sampler
     };
 
-    u32 index_offset = 0;
-
-    int width  = draw_data->DisplaySize.x ;
-    int height = draw_data->DisplaySize.y ;
+    int width = context->window.width;
+    int height = context->window.height;
 
     ImVec2 clip_off = draw_data->DisplayPos;
+    ImVec2 clip_scale = draw_data->FramebufferScale;
 
-    dm_render_command_begin_rendering(context, render_target, 0, 0, 0, 1, 1, DM_RENDER_LOAD_OP_LOAD, DM_RENDER_STORE_OP_STORE, DM_RENDER_LOAD_OP_DONT_CARE, DM_RENDER_STORE_OP_DONT_CARE);
-        dm_render_command_set_viewport(context, 0, 0, width, height, 0, 1.f);
-        dm_render_command_set_scissor(context, 0, 0, width, height);
-        dm_render_command_bind_pipeline(context, gui_ctx->resources.pipeline);
-        dm_render_command_push_resources(context, resources, 4);
-        dm_render_command_bind_index_buffer(context, gui_ctx->resources.ib[current_frame], 0);
+    u32 index_offset = 0;
+    u32 vertex_offset = 0;
 
-        u32 vertex_offset = 0;
-        for(u32 i=0; i<draw_data->CmdListsCount; i++)
+    //dm_render_command_set_viewport(context, 0, 0, width, height, 0, 1.f);
+    //dm_render_command_set_scissor(context, 0, 0, width, height);
+    dm_render_command_bind_pipeline(context, gui_ctx->resources.pipeline);
+    dm_render_command_push_resources(context, resources, 4);
+    dm_render_command_bind_index_buffer(context, gui_ctx->resources.ib[current_frame], index_offset);
+
+    for(u32 i=0; i<draw_data->CmdListsCount; i++)
+    {
+        ImDrawList *list = draw_data->CmdLists.Data[i];
+
+        for(u32 j=0; j<list->CmdBuffer.Size; j++)
         {
-            ImDrawList *list = draw_data->CmdLists.Data[i];
+            const ImDrawCmd *cmd = &list->CmdBuffer.Data[j];
+            if(cmd->ElemCount == 0) continue;
 
-            for(u32 j=0; j<list->CmdBuffer.Size; j++)
-            {
-                const ImDrawCmd *cmd = &list->CmdBuffer.Data[j];
-                if(cmd->ElemCount == 0) continue;
+            size_t cmd_vertex_offset = vertex_offset + cmd->VtxOffset;
+            size_t cmd_index_offset  = index_offset  + cmd->IdxOffset * sizeof(ImDrawIdx);
 
-                ImVec2 clip_min = { cmd->ClipRect.x, cmd->ClipRect.y };
-                ImVec2 clip_max = { cmd->ClipRect.z, cmd->ClipRect.w };
-                if(clip_min.x < 0.f) clip_min.x = 0.f;
-                if(clip_min.y < 0.f) clip_min.y = 0.f;
-                if(clip_max.x > (float)width) clip_min.x = (float)width;
-                if(clip_max.y > (float)height) clip_min.y = (float)height;
-                if(clip_max.x <= clip_min.x || clip_max.y <= clip_min.y) continue;
+            ImVec2 clip_min = { (cmd->ClipRect.x-clip_off.x) , (cmd->ClipRect.y-clip_off.y) };
+            ImVec2 clip_max = { (cmd->ClipRect.z-clip_off.x) , (cmd->ClipRect.w-clip_off.y) };
+            if(clip_min.x < 0.f) clip_min.x = 0.f;
+            if(clip_min.y < 0.f) clip_min.y = 0.f;
+            if(clip_max.x > (float)width) clip_max.x = (float)width;
+            if(clip_max.y > (float)height) clip_max.y = (float)height;
+            if(clip_max.x <= clip_min.x || clip_max.y <= clip_min.y) continue;
 
-                dm_render_command_set_scissor(context, clip_min.x, clip_min.y, clip_max.x-clip_min.x, clip_max.y-clip_min.y);
+            //dm_render_command_set_scissor(context, clip_min.x, clip_min.y, clip_max.x-clip_min.x, clip_max.y-clip_min.y);
 
-                dm_render_command_draw(context, cmd->ElemCount, index_offset, 1, vertex_offset);
-            }
-
-            vertex_offset += list->VtxBuffer.Size;
-            index_offset += (size_t)list->IdxBuffer.Size * sizeof(ImDrawIdx);
+            dm_render_command_draw(context, cmd->ElemCount, cmd_index_offset, 1, cmd_vertex_offset);
         }
 
-    dm_render_command_end_rendering(context, render_target);
+        vertex_offset += (size_t)list->VtxBuffer.Size;
+        index_offset  += (size_t)list->IdxBuffer.Size * sizeof(ImDrawIdx);
+    }
 }
