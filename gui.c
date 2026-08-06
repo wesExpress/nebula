@@ -114,7 +114,6 @@ bool gui_create_texture(dm_context *context, ImTextureData *tex, dm_resource *re
         .height=tex->Height,
         .data=tex->Pixels,
     };
-    LOG_INFO("%u %u", tex->Width, tex->Height);
 
     if(!dm_renderer_create_texture(context, desc, resource))         return false;
     if(!dm_renderer_upload_resources_to_heap(context, &resource, 1)) return false;
@@ -129,7 +128,6 @@ void gui_update_texture(dm_context *context, ImTextureData *tex, dm_resource res
     for(u32 i=0; i<tex->Updates.Size; i++)
     {
         ImTextureRect r = tex->Updates.Data[i];
-        LOG_INFO("%u %u %u %u", r.x,r.y,r.w,r.h);
         dm_render_command_update_texture(context, resource, ImTextureData_GetPixelsAt(tex, r.x, r.y), r.x, r.y, r.w, r.h);
     }
 
@@ -142,6 +140,7 @@ bool gui_end_frame(dm_context *context, gui_context *gui_ctx)
 
     ImGui_Render();
     ImDrawData *draw_data = ImGui_GetDrawData();
+    if(draw_data->CmdLists.Size==0) return true;
 
     if(draw_data->Textures)
     {
@@ -187,6 +186,7 @@ void gui_render(dm_context *context, gui_context *gui_ctx)
     const u8 current_frame = context->renderer.current_frame;
 
     ImDrawData *draw_data = ImGui_GetDrawData();
+    if(draw_data->CmdLists.Size == 0) return;
 
     dm_resource resources[] = {
         gui_ctx->resources.vb[current_frame],
