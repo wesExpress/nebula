@@ -27,8 +27,8 @@ layout (push_constant) uniform push_data_t
 {
     uint vb_index;
     uint scene_index;
-    //uint texture_index;
-    //uint sampler_index;
+    uint texture_index;
+    uint sampler_index;
 } push_data;
 
 void main()
