@@ -114,6 +114,7 @@ bool gui_create_texture(dm_context *context, ImTextureData *tex, dm_resource *re
         .height=tex->Height,
         .data=tex->Pixels,
     };
+    LOG_INFO("%u %u", tex->Width, tex->Height);
 
     if(!dm_renderer_create_texture(context, desc, resource))         return false;
     if(!dm_renderer_upload_resources_to_heap(context, &resource, 1)) return false;
@@ -139,7 +140,6 @@ bool gui_end_frame(dm_context *context, gui_context *gui_ctx)
 {
     const u8 current_frame = context->renderer.current_frame;
 
-    ImGui_EndFrame();
     ImGui_Render();
     ImDrawData *draw_data = ImGui_GetDrawData();
 
@@ -148,19 +148,11 @@ bool gui_end_frame(dm_context *context, gui_context *gui_ctx)
         for(u32 i=0; i<draw_data->Textures->Size; i++)
         {
             ImTextureData *tex = *draw_data->Textures[i].Data;
-            switch(tex->Status)
+            if(tex->Status == ImTextureStatus_WantCreate)
             {
-                default:
-                case ImTextureStatus_OK: continue;
-
-                case ImTextureStatus_WantCreate:  
-                    if(gui_create_texture(context, tex, &gui_ctx->resources.texture)) break;
-                    return false;
-                case ImTextureStatus_WantUpdates: gui_update_texture(context, tex, gui_ctx->resources.texture); break;
-                case ImTextureStatus_WantDestroy:
-                    LOG_INFO("DESTROY");
-                break;
+                if(!gui_create_texture(context, tex, &gui_ctx->resources.texture)) return false;
             }
+            else if(tex->Status == ImTextureStatus_WantUpdates) gui_update_texture(context, tex, gui_ctx->resources.texture);
         }
     }
 
@@ -200,7 +192,7 @@ void gui_render(dm_context *context, gui_context *gui_ctx)
         gui_ctx->resources.vb[current_frame],
         gui_ctx->resources.scene[current_frame],
         gui_ctx->resources.texture,
-        gui_ctx->resources.linear_sampler
+        gui_ctx->resources.nearest_sampler
     };
 
     int width = context->window.width;
