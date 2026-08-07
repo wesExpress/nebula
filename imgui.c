@@ -130,7 +130,6 @@ bool imgui_init(dm_context *context, imgui_context *imgui_ctx)
         .data=ortho
     };
 
-
     dm_buffer_desc vb_desc = {
         .type=DM_BUFFER_TYPE_VERTEX,
         .size=vertex_buffer_size,

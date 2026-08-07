@@ -299,7 +299,7 @@ void renderer_render(render_data *renderer, dm_context *context, imgui_context *
     const u16 dy = (context->window.height + GRID_Y - 1) / GRID_Y;
     const u16 dz = GRID_Z;
 
-#if 0
+#if 1
     dm_compute_command_wait(context, renderer->synchronization[current_frame]);
 
     dm_compute_command_begin_recording(context);

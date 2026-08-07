@@ -26,7 +26,7 @@ void main()
     if(index.x >= dimensions.s || index.y >= dimensions.y) return;
 
     vec3 rgb = imageLoad(texture_heap[push_data.texture_index], index).rgb;
-    float alpha = cos(compute_frame_data[push_data.data_index].time);
+    float alpha = cos(compute_frame_data[push_data.data_index].time) + 1.f;
 
     imageStore(texture_heap[push_data.texture_index], index, vec4(rgb, alpha));
 }
