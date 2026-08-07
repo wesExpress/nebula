@@ -119,10 +119,10 @@ bool renderer_init(render_data *renderer, dm_context *context)
     if(!texture_data) return false;
 
     dm_texture2d_desc texture_desc = {
+        .type=DM_TEXTURE2D_TYPE_SAMPLED,
+        .format=DM_TEXTURE2D_FORMAT_R8G8B8A8_UNORM,
         .width=w,
         .height=h,
-        .size=sizeof(u32) * w * h,
-        .type=DM_TEXTURE2D_TYPE_SAMPLED,
         .data=texture_data
     };
     if(!dm_renderer_create_texture(context, texture_desc, &renderer->texture)) return false;
@@ -130,7 +130,11 @@ bool renderer_init(render_data *renderer, dm_context *context)
     stbi_image_free(texture_data);
 
     // sampler
-    dm_sampler_desc sampler_desc = { 0 };
+    dm_sampler_desc sampler_desc = { 
+        .min=DM_SAMPLER_FILTER_NEAREST,
+        .mag=DM_SAMPLER_FILTER_NEAREST,
+        .mip=DM_SAMPLER_FILTER_NEAREST
+    };
     if(!dm_renderer_create_sampler(context, sampler_desc, &renderer->sampler)) return false;
 
     // buffers
@@ -255,18 +259,18 @@ bool renderer_update(render_data *renderer, dm_context *context, instance_data *
     glm_perspective(renderer->fov, renderer->aspect, renderer->znear, renderer->zfar, proj);
     glm_mat4_mul(proj, view, view_proj);
 
-    dm_render_command_update_buffer(context, renderer->cb[current_frame], view_proj, sizeof(view_proj));
+    dm_render_command_update_buffer(context, renderer->cb[current_frame], view_proj, sizeof(view_proj), 0);
 
     const size_t obj_size = sizeof(mat4) * MAX_INSTANCES * 2;
-    dm_render_command_update_buffer(context, renderer->instb[current_frame], instances->obj, obj_size);
+    dm_render_command_update_buffer(context, renderer->instb[current_frame], instances->obj, obj_size, 0);
 
     renderer->frame_time += 3.1415926535f / 180.f;
-    dm_render_command_update_buffer(context, renderer->compute_frame_data[current_frame], &renderer->frame_time, sizeof(float));
+    dm_render_command_update_buffer(context, renderer->compute_frame_data[current_frame], &renderer->frame_time, sizeof(float), 0);
 
     return true;
 }
 
-void renderer_render(render_data *renderer, dm_context *context, imgui_context *imgui_ctx)
+void renderer_render(render_data *renderer, dm_context *context, gui_context *gui_ctx)
 {
     const u8 current_frame = context->renderer.current_frame;
     dm_resource render_target = renderer->render_target[current_frame];
@@ -280,11 +284,16 @@ void renderer_render(render_data *renderer, dm_context *context, imgui_context *
         renderer->sampler,
     };
 
+    const int width = context->window.width;
+    const int height = context->window.height;
+
     dm_render_command_begin_rendering(context, render_target, 0,0,0,1, 1.f, DM_RENDER_LOAD_OP_CLEAR, DM_RENDER_STORE_OP_STORE, DM_RENDER_LOAD_OP_CLEAR, DM_RENDER_STORE_OP_STORE);
+        dm_render_command_set_viewport(context, 0,0, width, height, 0, 1.f);
+        dm_render_command_set_scissor(context, 0,0, width, height);
         dm_render_command_bind_pipeline(context, renderer->raster_pipeline);
         dm_render_command_bind_index_buffer(context, renderer->ib, 0);
         dm_render_command_push_resources(context, resources, 5);
-        dm_render_command_draw(context, 36, 0, MAX_INSTANCES);
+        dm_render_command_draw(context, 36, 0, MAX_INSTANCES, 0);
     dm_render_command_end_rendering(context, render_target);
 
     dm_render_command_signal(context, renderer->synchronization[current_frame]);
@@ -320,9 +329,14 @@ void renderer_render(render_data *renderer, dm_context *context, imgui_context *
     dm_render_command_wait(context, renderer->synchronization[current_frame]);
 
     dm_render_command_begin_rendering(context, renderer->swapchain, 1,0,1,1, 1, DM_RENDER_LOAD_OP_CLEAR, DM_RENDER_STORE_OP_STORE, DM_RENDER_LOAD_OP_CLEAR, DM_RENDER_STORE_OP_DONT_CARE);
+        dm_render_command_set_viewport(context, 0,0, width, height, 0, 1.f);
+        dm_render_command_set_scissor(context, 0,0, width, height);
         dm_render_command_bind_pipeline(context, renderer->quad_pipeline);
         dm_render_command_bind_index_buffer(context, renderer->quad_ib, 0);
         dm_render_command_push_resources(context, quad_resources, 2);
-        dm_render_command_draw(context, 6, 0, 1);
+        dm_render_command_draw(context, 6, 0, 1, 0);
+
+        gui_render(context, gui_ctx);
+
     dm_render_command_end_rendering(context, renderer->swapchain);
 }
