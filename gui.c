@@ -129,7 +129,7 @@ void gui_update_texture(dm_context *context, ImTextureData *tex, dm_resource res
     {
         ImTextureRect r = tex->Updates.Data[i];
         void *data = ImTextureData_GetPixelsAt(tex, r.x, r.y);
-        dm_render_command_update_texture(context, resource, data, r.x, r.y, r.w, r.h);
+        //dm_render_command_update_texture(context, resource, data, r.x, r.y, r.w, r.h);
     }
 
     ImTextureData_SetStatus(tex, ImTextureStatus_OK);
@@ -180,6 +180,7 @@ bool gui_end_frame(dm_context *context, gui_context *gui_ctx)
     // projection matrix
     mat4 ortho;
     glm_ortho(0, context->window.width, context->window.height, 0, -1.f,1.f, ortho);
+    glm_mat4_identity(ortho);
 
     dm_render_command_update_buffer(context, gui_ctx->resources.scene[current_frame], ortho, sizeof(ortho), 0);
 
