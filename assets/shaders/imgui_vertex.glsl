@@ -8,9 +8,9 @@ layout (location=1) out vec4 vertex_color;
 
 struct vertex
 {
-    vec2 position;
-    vec2 uv;
-    vec4 color;
+    vec2  position;
+    vec2  uv;
+    uvec4 color;
 };
 
 layout (descriptor_heap) readonly buffer vertex_buffer_t
@@ -27,8 +27,8 @@ layout (push_constant) uniform push_data_t
 {
     uint vb_index;
     uint scene_index;
-    //uint texture_index;
-    //uint sampler_index;
+    uint texture_index;
+    uint sampler_index;
 } push_data;
 
 void main()
@@ -39,5 +39,6 @@ void main()
     gl_Position = ortho * position;
 
     vertex_uv    = vertex_buffer_heap[push_data.vb_index].vertices[gl_VertexIndex].uv;
-    vertex_color = vertex_buffer_heap[push_data.vb_index].vertices[gl_VertexIndex].color;
+
+    vertex_color = vec4(vertex_buffer_heap[push_data.vb_index].vertices[gl_VertexIndex].color) / vec4(255.f);
 }

@@ -15,12 +15,13 @@ layout (push_constant) uniform push_data_t
 {
     uint vb_index;
     uint scene_index;
-    //uint texture_index;
-    //uint sampler_index;
+    uint texture_index;
+    uint sampler_index;
 } push_data;
 
 void main()
 {
-    //fragment_color = texture(sampler2D(texture_heap[push_data.texture_index], sampler_heap[push_data.sampler_index]), vertex_uv);
+    fragment_color = texture(sampler2D(texture_heap[push_data.texture_index], sampler_heap[push_data.sampler_index]), vertex_uv);
     fragment_color = vertex_color;
+    //fragment_color = vec4(1,1,1,1);
 }

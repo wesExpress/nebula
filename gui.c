@@ -87,16 +87,16 @@ void gui_new_frame(dm_context *context, gui_context *gui_ctx)
     static int counter = 0;
     static ImColor clear_color;
 
-    ImGui_Begin("Hello, world!", NULL, 0);                          // Create a window called "Hello, world!" and append into it.
+    ImGui_Begin("Hello, world!", NULL, 0);              // Create a window called "Hello, world!" and append into it.
 
-    ImGui_Text("This is some useful text.");               // Display some text (you can use a format strings too)
-    ImGui_Checkbox("Demo Window", &demo);      // Edit bools storing our window open/close state
+    ImGui_Text("This is some useful text.");            // Display some text (you can use a format strings too)
+    ImGui_Checkbox("Demo Window", &demo);               // Edit bools storing our window open/close state
     ImGui_Checkbox("Another Window", &demo);
 
     ImGui_SliderFloat("float", &f, 0.0f, 1.0f);            // Edit 1 float using a slider from 0.0f to 1.0f
     ImGui_ColorEdit3("clear color", (float*)&clear_color, 0); // Edit 3 floats representing a color
 
-    if (ImGui_Button("Button"))                            // Buttons return true when clicked (most widgets return true when edited/activated)
+    if (ImGui_Button("Button")) // Buttons return true when clicked (most widgets return true when edited/activated)
         counter++;
     ImGui_SameLine();
     ImGui_Text("counter = %d", counter);
@@ -128,7 +128,8 @@ void gui_update_texture(dm_context *context, ImTextureData *tex, dm_resource res
     for(u32 i=0; i<tex->Updates.Size; i++)
     {
         ImTextureRect r = tex->Updates.Data[i];
-        dm_render_command_update_texture(context, resource, ImTextureData_GetPixelsAt(tex, r.x, r.y), r.x, r.y, r.w, r.h);
+        void *data = ImTextureData_GetPixelsAt(tex, r.x, r.y);
+        //dm_render_command_update_texture(context, resource, data, r.x, r.y, r.w, r.h);
     }
 
     ImTextureData_SetStatus(tex, ImTextureStatus_OK);
@@ -151,12 +152,16 @@ bool gui_end_frame(dm_context *context, gui_context *gui_ctx)
             {
                 if(!gui_create_texture(context, tex, &gui_ctx->resources.texture)) return false;
             }
-            else if(tex->Status == ImTextureStatus_WantUpdates) gui_update_texture(context, tex, gui_ctx->resources.texture);
+            else if(tex->Status == ImTextureStatus_WantUpdates) 
+                gui_update_texture(context, tex, gui_ctx->resources.texture);
         }
     }
 
     size_t index_offset = 0;
     size_t vertex_offset = 0;
+
+    dm_resource vb = gui_ctx->resources.vb[current_frame];
+    dm_resource ib = gui_ctx->resources.ib[current_frame];
 
     for(u32 i=0; i<draw_data->CmdListsCount; i++)
     {
@@ -165,8 +170,8 @@ bool gui_end_frame(dm_context *context, gui_context *gui_ctx)
         size_t vb_size = list->VtxBuffer.Size * sizeof(ImDrawVert);
         size_t ib_size = list->IdxBuffer.Size * sizeof(ImDrawIdx);
 
-        dm_render_command_update_buffer(context, gui_ctx->resources.vb[current_frame], list->VtxBuffer.Data, vb_size, vertex_offset);
-        dm_render_command_update_buffer(context, gui_ctx->resources.ib[current_frame], list->IdxBuffer.Data, ib_size, index_offset);
+        dm_render_command_update_buffer(context, vb, list->VtxBuffer.Data, vb_size, vertex_offset);
+        dm_render_command_update_buffer(context, ib, list->IdxBuffer.Data, ib_size, index_offset);
 
         vertex_offset += vb_size;
         index_offset  += ib_size;
@@ -174,7 +179,7 @@ bool gui_end_frame(dm_context *context, gui_context *gui_ctx)
 
     // projection matrix
     mat4 ortho;
-    glm_ortho(0, context->window.width, context->window.height, 0, 0.f,1.f, ortho);
+    glm_ortho(0, context->window.width, context->window.height,0, 0.f,1.f, ortho);
 
     dm_render_command_update_buffer(context, gui_ctx->resources.scene[current_frame], ortho, sizeof(ortho), 0);
 
@@ -192,7 +197,7 @@ void gui_render(dm_context *context, gui_context *gui_ctx)
         gui_ctx->resources.vb[current_frame],
         gui_ctx->resources.scene[current_frame],
         gui_ctx->resources.texture,
-        gui_ctx->resources.nearest_sampler
+        gui_ctx->resources.linear_sampler
     };
 
     int width = context->window.width;
@@ -204,8 +209,8 @@ void gui_render(dm_context *context, gui_context *gui_ctx)
     u32 index_offset = 0;
     u32 vertex_offset = 0;
 
-    //dm_render_command_set_viewport(context, 0, 0, width, height, 0, 1.f);
-    //dm_render_command_set_scissor(context, 0, 0, width, height);
+    dm_render_command_set_viewport(context, 0, 0, width, height, 0, 1.f);
+    dm_render_command_set_scissor(context, 0, 0, width, height);
     dm_render_command_bind_pipeline(context, gui_ctx->resources.pipeline);
     dm_render_command_push_resources(context, resources, 4);
     dm_render_command_bind_index_buffer(context, gui_ctx->resources.ib[current_frame], index_offset);
@@ -220,22 +225,39 @@ void gui_render(dm_context *context, gui_context *gui_ctx)
             if(cmd->ElemCount == 0) continue;
 
             size_t cmd_vertex_offset = vertex_offset + cmd->VtxOffset;
+#ifdef DM_METAL
             size_t cmd_index_offset  = index_offset  + cmd->IdxOffset * sizeof(ImDrawIdx);
+#else
+            size_t cmd_index_offset  = index_offset  + cmd->IdxOffset;
+#endif
 
-            ImVec2 clip_min = { (cmd->ClipRect.x-clip_off.x) , (cmd->ClipRect.y-clip_off.y) };
-            ImVec2 clip_max = { (cmd->ClipRect.z-clip_off.x) , (cmd->ClipRect.w-clip_off.y) };
+            ImVec2 clip_min = { 
+                (cmd->ClipRect.x-clip_off.x) * clip_scale.x, 
+                (cmd->ClipRect.y-clip_off.y) * clip_scale.y 
+            };
+            ImVec2 clip_max = { 
+                (cmd->ClipRect.z-clip_off.x) * clip_scale.x, 
+                (cmd->ClipRect.w-clip_off.y) * clip_scale.y
+            };
+
             if(clip_min.x < 0.f) clip_min.x = 0.f;
             if(clip_min.y < 0.f) clip_min.y = 0.f;
             if(clip_max.x > (float)width) clip_max.x = (float)width;
             if(clip_max.y > (float)height) clip_max.y = (float)height;
             if(clip_max.x <= clip_min.x || clip_max.y <= clip_min.y) continue;
 
-            //dm_render_command_set_scissor(context, clip_min.x, clip_min.y, clip_max.x-clip_min.x, clip_max.y-clip_min.y);
+            int scissor_width  = clip_max.x - clip_min.x;
+            int scissor_height = clip_max.y - clip_min.y;
+            dm_render_command_set_scissor(context, clip_min.x, clip_min.y, scissor_width, scissor_height);
 
             dm_render_command_draw(context, cmd->ElemCount, cmd_index_offset, 1, cmd_vertex_offset);
         }
 
         vertex_offset += (size_t)list->VtxBuffer.Size;
+#ifdef DM_METAL
         index_offset  += (size_t)list->IdxBuffer.Size * sizeof(ImDrawIdx);
+#else
+        index_offset  += (size_t)list->IdxBuffer.Size;
+#endif
     }
 }
