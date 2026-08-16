@@ -129,7 +129,7 @@ void gui_update_texture(dm_context *context, ImTextureData *tex, dm_resource res
     {
         ImTextureRect r = tex->Updates.Data[i];
         void *data = ImTextureData_GetPixelsAt(tex, r.x, r.y);
-        //dm_render_command_update_texture(context, resource, data, r.x, r.y, r.w, r.h);
+        dm_render_command_update_texture(context, resource, data, r.x, r.y, r.w, r.h);
     }
 
     ImTextureData_SetStatus(tex, ImTextureStatus_OK);
