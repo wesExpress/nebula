@@ -125,12 +125,7 @@ bool gui_create_texture(dm_context *context, ImTextureData *tex, dm_resource *re
 
 void gui_update_texture(dm_context *context, ImTextureData *tex, dm_resource resource)
 {
-    for(u32 i=0; i<tex->Updates.Size; i++)
-    {
-        ImTextureRect r = tex->Updates.Data[i];
-        void *data = ImTextureData_GetPixelsAt(tex, r.x, r.y);
-        dm_render_command_update_texture(context, resource, data, r.x, r.y, r.w, r.h);
-    }
+    dm_render_command_update_texture(context, resource, tex->Pixels, tex->Width * tex->Height * tex->BytesPerPixel);
 
     ImTextureData_SetStatus(tex, ImTextureStatus_OK);
 }
@@ -152,8 +147,7 @@ bool gui_end_frame(dm_context *context, gui_context *gui_ctx)
             {
                 if(!gui_create_texture(context, tex, &gui_ctx->resources.texture)) return false;
             }
-            else if(tex->Status == ImTextureStatus_WantUpdates) 
-                gui_update_texture(context, tex, gui_ctx->resources.texture);
+            //else if(tex->Status == ImTextureStatus_WantUpdates) gui_update_texture(context, tex, gui_ctx->resources.texture);
         }
     }
 
