@@ -105,6 +105,8 @@ void application_run(application *app)
 
 void application_shutdown(application *app)
 {
+    instances_shutdown(app->instances);
+
     dm_shutdown(&app->context);
 
     dm_arena_detroy(&app->arena);
