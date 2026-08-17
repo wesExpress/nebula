@@ -147,7 +147,7 @@ bool gui_end_frame(dm_context *context, gui_context *gui_ctx)
             {
                 if(!gui_create_texture(context, tex, &gui_ctx->resources.texture)) return false;
             }
-            //else if(tex->Status == ImTextureStatus_WantUpdates) gui_update_texture(context, tex, gui_ctx->resources.texture);
+            else if(tex->Status == ImTextureStatus_WantUpdates) gui_update_texture(context, tex, gui_ctx->resources.texture);
         }
     }
 

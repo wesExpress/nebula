@@ -11,7 +11,6 @@ struct vertex
 {
     vec2  position;
     vec2  uv;
-    //vec4 color;
     uint color;
 };
 
@@ -38,17 +37,15 @@ void main()
     mat4 ortho = scene_heap[push_data.scene_index].ortho;
 
     vec4 position = vec4(vertex_buffer_heap[push_data.vb_index].vertices[gl_VertexIndex].position, 0, 1);
-    gl_Position = ortho * position;
+    gl_Position   = ortho * position;
 
-    vertex_uv    = vertex_buffer_heap[push_data.vb_index].vertices[gl_VertexIndex].uv;
+    vertex_uv = vertex_buffer_heap[push_data.vb_index].vertices[gl_VertexIndex].uv;
 
-    //vertex_color = vec4(vertex_buffer_heap[push_data.vb_index].vertices[gl_VertexIndex].color) / vec4(255.f);
-    //vertex_color = vertex_buffer_heap[push_data.vb_index].vertices[gl_VertexIndex].color;
     uint color = vertex_buffer_heap[push_data.vb_index].vertices[gl_VertexIndex].color;
-    float r = (color >> 0) & 0xFF;
-    float g = (color >> 8) & 0xFF;
-    float b = (color >> 16)  & 0xFF;
-    float a = (color >> 24)  & 0xFF;
+    float r = (color >> 0)  & 0xFF;
+    float g = (color >> 8)  & 0xFF;
+    float b = (color >> 16) & 0xFF;
+    float a = (color >> 24) & 0xFF;
 
     vertex_color = vec4(r,g,b,a) / vec4(255.f);
 }
