@@ -219,7 +219,7 @@ void gui_render(dm_context *context, gui_context *gui_ctx)
             if(cmd->ElemCount == 0) continue;
 
             size_t cmd_vertex_offset = vertex_offset + cmd->VtxOffset;
-#ifdef DM_METAL
+#if 0
             size_t cmd_index_offset  = index_offset  + cmd->IdxOffset * sizeof(ImDrawIdx);
 #else
             size_t cmd_index_offset  = index_offset  + cmd->IdxOffset;
@@ -248,7 +248,7 @@ void gui_render(dm_context *context, gui_context *gui_ctx)
         }
 
         vertex_offset += (size_t)list->VtxBuffer.Size;
-#ifdef DM_METAL
+#if 0
         index_offset  += (size_t)list->IdxBuffer.Size * sizeof(ImDrawIdx);
 #else
         index_offset  += (size_t)list->IdxBuffer.Size;
