@@ -219,11 +219,7 @@ void gui_render(dm_context *context, gui_context *gui_ctx)
             if(cmd->ElemCount == 0) continue;
 
             size_t cmd_vertex_offset = vertex_offset + cmd->VtxOffset;
-#if 0
-            size_t cmd_index_offset  = index_offset  + cmd->IdxOffset * sizeof(ImDrawIdx);
-#else
             size_t cmd_index_offset  = index_offset  + cmd->IdxOffset;
-#endif
 
             ImVec2 clip_min = { 
                 (cmd->ClipRect.x-clip_off.x) * clip_scale.x, 
@@ -236,8 +232,8 @@ void gui_render(dm_context *context, gui_context *gui_ctx)
 
             if(clip_min.x < 0.f) clip_min.x = 0.f;
             if(clip_min.y < 0.f) clip_min.y = 0.f;
-            if(clip_max.x > (float)width) clip_max.x = (float)width;
-            if(clip_max.y > (float)height) clip_max.y = (float)height;
+            if(clip_max.x > (float)width) clip_max.x = (float)width * clip_scale.x;
+            if(clip_max.y > (float)height) clip_max.y = (float)height * clip_scale.y;
             if(clip_max.x <= clip_min.x || clip_max.y <= clip_min.y) continue;
 
             int scissor_width  = clip_max.x - clip_min.x;
@@ -248,10 +244,6 @@ void gui_render(dm_context *context, gui_context *gui_ctx)
         }
 
         vertex_offset += (size_t)list->VtxBuffer.Size;
-#if 0
-        index_offset  += (size_t)list->IdxBuffer.Size * sizeof(ImDrawIdx);
-#else
         index_offset  += (size_t)list->IdxBuffer.Size;
-#endif
     }
 }
