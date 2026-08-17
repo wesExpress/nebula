@@ -6,7 +6,7 @@ struct vertex_in
 {
     packed_float2 position;
     packed_float2 uv;
-    uchar4 color;
+    uint   color;
 };
 
 struct imgui_scene
@@ -41,7 +41,12 @@ vertex_out v_main(
     v_out.position = arg.scene->ortho * float4(v_in.position, 0, 1);
     v_out.uv = v_in.uv;
 
-    v_out.color = float4(v_in.color) / float4(255.f);
+    float r = (v_in.color >> 0) & 0xff;
+    float g = (v_in.color >> 8) & 0xff;
+    float b = (v_in.color >> 16) & 0xff;
+    float a = (v_in.color >> 24) & 0xff;
+
+    v_out.color = float4(r,g,b,a) / float4(255.f);
 
     return v_out;
 }
