@@ -80,6 +80,7 @@ void gui_new_frame(dm_context *context, gui_context *gui_ctx)
 {
     ImGui_NewFrame();
 
+#if 0
     ImGuiIO *io = ImGui_GetIO();
     ImGui_ShowDemoWindow(&demo);
 
@@ -103,6 +104,7 @@ void gui_new_frame(dm_context *context, gui_context *gui_ctx)
 
     ImGui_Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / io->Framerate, io->Framerate);
     ImGui_End();
+#endif
 }
 
 bool gui_create_texture(dm_context *context, ImTextureData *tex, dm_resource *resource)

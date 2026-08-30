@@ -6,7 +6,7 @@
 
 #include "box3d/box3d.h"
 
-#define MAX_INSTANCES 1000
+#define MAX_INSTANCES (8 << 7)
 
 typedef struct instance_data_t
 {
