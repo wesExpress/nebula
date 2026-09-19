@@ -154,14 +154,14 @@ bool renderer_init(render_data *renderer, dm_context *context)
     if(!dm_renderer_create_buffer(context, ib_desc, &renderer->ib)) return false;
 
     // camera
-    vec3 cam_pos     = { 0,0,10};
-    vec3 cam_forward = { 0,0,-1 };
+    vec3 cam_pos     = { 0,0,50};
+    vec3 cam_forward = { 0,0,-1.f};
     vec3 cam_up      = { 0,1,0 };
 
     renderer->aspect = (float)context->window.width / (float)context->window.height;
     renderer->fov = glm_rad(70.f);
     renderer->znear = 0.1f;
-    renderer->zfar = 100.f;
+    renderer->zfar = 1000.f;
 
     glm_vec3_dup(cam_pos, renderer->cam_pos);
     glm_vec3_dup(cam_forward, renderer->cam_forward);

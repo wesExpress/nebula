@@ -16,10 +16,12 @@ void run_gravity_naive(instance_data *instances)
     float32x4_t local_x, local_y, local_z;
     float32x4_t r_x, r_y, r_z;
     float32x4_t dis2, grav;
+    float32x4_t fx_j, fy_j, fz_j;
 
     static const float g = 0.5f;
     float32x4_t grav_const = vdupq_n_f32(g);
     float32x4_t ones = vdupq_n_f32(1.f);
+    float32x4_t neg_ones = vdupq_n_f32(-1.f);
 
     float fx[MAX_INSTANCES] = { 0 };
     float fy[MAX_INSTANCES] = { 0 };
@@ -27,54 +29,17 @@ void run_gravity_naive(instance_data *instances)
 
     for(u32 i=0; i<MAX_INSTANCES; i++)
     {
-        b3WorldTransform transform_i = b3Body_GetTransform(instances->bodies[i]);
+        px_i = vdupq_n_f32(instances->px[i]);
+        py_i = vdupq_n_f32(instances->py[i]);
+        pz_i = vdupq_n_f32(instances->pz[i]);
+        mass_i = vdupq_n_f32(instances->masses[i]);
 
-        px_i = vdupq_n_f32(transform_i.p.x);
-        py_i = vdupq_n_f32(transform_i.p.y);
-        pz_i = vdupq_n_f32(transform_i.p.z);
-        mass_i = vdupq_n_f32(b3Body_GetMass(instances->bodies[i]));
-
-        for(u32 j=i+1; j<MAX_INSTANCES-4; )
+        for(u32 j=i+1; j<MAX_INSTANCES-3; j+=4)
         {
-            b3WorldTransform transform_j[4] = {
-                b3Body_GetTransform(instances->bodies[j+0]),
-                b3Body_GetTransform(instances->bodies[j+1]),
-                b3Body_GetTransform(instances->bodies[j+2]),
-                b3Body_GetTransform(instances->bodies[j+3]),
-            };
-
-            float x_j[4] = {
-                transform_j[0].p.x,
-                transform_j[1].p.x,
-                transform_j[2].p.x,
-                transform_j[3].p.x,
-            };
-
-            float y_j[4] = {
-                transform_j[0].p.y,
-                transform_j[1].p.y,
-                transform_j[2].p.y,
-                transform_j[3].p.y,
-            };
-
-            float z_j[4] = {
-                transform_j[0].p.z,
-                transform_j[1].p.z,
-                transform_j[2].p.z,
-                transform_j[3].p.z,
-            };
-
-            float m_j[4] = {
-                b3Body_GetMass(instances->bodies[j+0]),
-                b3Body_GetMass(instances->bodies[j+1]),
-                b3Body_GetMass(instances->bodies[j+2]),
-                b3Body_GetMass(instances->bodies[j+3]),
-            };
-
-            px_j = vld1q_f32(x_j);
-            py_j = vld1q_f32(y_j);
-            pz_j = vld1q_f32(z_j);
-            mass_j = vld1q_f32(m_j);
+            px_j = vld1q_f32(instances->px + j);
+            py_j = vld1q_f32(instances->py + j);
+            pz_j = vld1q_f32(instances->pz + j);
+            mass_j = vld1q_f32(instances->masses + j);
 
             // direction vector
             r_x = vsubq_f32(px_j, px_i);
@@ -105,25 +70,24 @@ void run_gravity_naive(instance_data *instances)
 
             // add forces
             float f_x[4], f_y[4], f_z[4];
-            vst1q_f32(f_x, local_x);
-            vst1q_f32(f_y, local_y);
-            vst1q_f32(f_z, local_z);
 
-            for(u32 k=0; k<4; k++)
-            {
-                // j entities get negative of local
-                fx[j+k] -= f_x[k];
-                fy[j+k] -= f_y[k];
-                fz[j+k] -= f_z[k];
+            // i entities get all local forces
+            fx[i] += vaddvq_f32(local_x);
+            fy[i] += vaddvq_f32(local_y);
+            fz[i] += vaddvq_f32(local_z);
 
-                // i entity gets all local forces
-                fx[i] += f_x[k];
-                fy[i] += f_y[k];
-                fz[i] += f_z[k];
-            }
+            // j entities get negative of local
+            fx_j = vld1q_f32(fx+j);
+            fy_j = vld1q_f32(fy+j);
+            fz_j = vld1q_f32(fz+j);
 
-            //
-            j += 4;
+            fx_j = vsubq_f32(fx_j, local_x);
+            fy_j = vsubq_f32(fy_j, local_y);
+            fz_j = vsubq_f32(fz_j, local_z);
+
+            vst1q_f32(fx+j, fx_j);
+            vst1q_f32(fy+j, fy_j);
+            vst1q_f32(fz+j, fz_j);
         }
 
         b3Vec3 force = { fx[i], fy[i], fz[i] };
@@ -144,13 +108,16 @@ bool instances_init(instance_data *instances)
     //
     const float world_size = 50.f;
     const float half_world = world_size * 0.5f;
+
+    vec3 w = { 0, 0, .1f};
+
     for(u32 i=0; i<MAX_INSTANCES; i++)
     {
         float m = random_float();
         vec3 scale = { m,m,m };
         glm_vec3_dup(scale, instances->scales[i]);
 
-        vec3 axis = { random_float(), random_float(), random_float() };
+        vec3 axis = { 0,1,0 };
         versor q;
         glm_quatv(q, random_float() * 3.14f * 2.f, axis);
 
@@ -167,21 +134,25 @@ bool instances_init(instance_data *instances)
 
         b3ShapeDef shape_def = b3DefaultShapeDef();
         shape_def.density = m;
-        shape_def.baseMaterial.friction = 0.1f;
+        shape_def.baseMaterial.friction = random_float();
 
         b3BoxHull box = b3MakeBoxHull(scale[0] * 0.5, scale[1] * 0.5f, scale[2] * 0.5f);
 
         b3CreateHullShape(instances->bodies[i], &shape_def, &box.base);
 
-        vec3 velocity = { random_float(), random_float(), random_float() };
-        glm_vec3_scale(velocity, 2.f, velocity);
-        glm_vec3_subs(velocity, 1.f, velocity);
+        vec3 velocity = { body_def.position.x, body_def.position.y, 0};
+        glm_vec3_cross(w, velocity, velocity);
         b3Body_SetLinearVelocity(instances->bodies[i], *(b3Vec3*)&velocity);
 
         vec3 angular_velocity = { random_float(), random_float(), random_float() };
         glm_vec3_scale(angular_velocity, 5.f, angular_velocity);
         glm_vec3_subs(angular_velocity, 2.5f, angular_velocity);
         b3Body_SetAngularVelocity(instances->bodies[i], *(b3Vec3*)&angular_velocity);
+
+        instances->px[i] = b3Body_GetTransform(instances->bodies[i]).p.x;
+        instances->py[i] = b3Body_GetTransform(instances->bodies[i]).p.y;
+        instances->pz[i] = b3Body_GetTransform(instances->bodies[i]).p.z;
+        instances->masses[i] = b3Body_GetMass(instances->bodies[i]);
     }
 
     return true;
@@ -190,7 +161,9 @@ bool instances_init(instance_data *instances)
 void instances_update(instance_data *instances)
 {
     // apply gravity
+    double start = dm_window_get_time();
     run_gravity_naive(instances);
+    double grav_elapsed = dm_window_get_time() - start;
 
     //
     static const float time_step = 1.f / 60.f;
@@ -198,7 +171,9 @@ void instances_update(instance_data *instances)
 
     ImGuiIO *io = ImGui_GetIO();
 
+    start = dm_window_get_time();
     b3World_Step(instances->world, io->DeltaTime, sub_step_count);
+    double phys_elapsed = dm_window_get_time() - start;
 
     for(u32 i=0; i<MAX_INSTANCES; i++)
     {
@@ -215,12 +190,19 @@ void instances_update(instance_data *instances)
 
         glm_mat4_inv(instances->obj[i][0], instances->obj[i][1]);
         glm_mat4_transpose(instances->obj[i][1]);
+
+        instances->px[i] = transform.p.x;
+        instances->py[i] = transform.p.y;
+        instances->pz[i] = transform.p.z;
+        instances->masses[i] = b3Body_GetMass(instances->bodies[i]);
     }
 
     ImGui_Begin("Debug", NULL, 0);              
 
     ImGui_Text("Object count: %u", MAX_INSTANCES);
     ImGui_Text("Delta time: %lf ms", io->DeltaTime * 1000.f);
+    ImGui_Text("Gravity: %lf ms", grav_elapsed * 1000.f);
+    ImGui_Text("Box3D: %lf ms", phys_elapsed * 1000.f);
 
     ImGui_End();
 }
