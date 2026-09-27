@@ -5,6 +5,7 @@
 
 #include "gui.h"
 #include "instances.h" 
+#define CGLM_ALL_UNALIGNED
 #include "cglm/cglm.h"
 
 typedef struct render_data_t

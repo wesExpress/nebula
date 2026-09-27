@@ -15,3 +15,4 @@ add_executable(${PROJECT_NAME} ${SOURCES})
 
 target_include_directories(${PROJECT_NAME} PUBLIC lib lib/cglm/include lib/box3d/include)
 target_link_libraries(${PROJECT_NAME} PUBLIC DarkMatter box3d)
+target_compile_options(${PROJECT_NAME} PRIVATE -march=native)
