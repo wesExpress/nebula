@@ -147,7 +147,7 @@ bool instances_init(instance_data *instances)
         vec3 angular_velocity = { random_float(), random_float(), random_float() };
         glm_vec3_scale(angular_velocity, 5.f, angular_velocity);
         glm_vec3_subs(angular_velocity, 2.5f, angular_velocity);
-        b3Body_SetAngularVelocity(instances->bodies[i], *(b3Vec3*)&angular_velocity);
+        //b3Body_SetAngularVelocity(instances->bodies[i], *(b3Vec3*)&angular_velocity);
 
         instances->px[i] = b3Body_GetTransform(instances->bodies[i]).p.x;
         instances->py[i] = b3Body_GetTransform(instances->bodies[i]).p.y;
