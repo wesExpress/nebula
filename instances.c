@@ -5,23 +5,55 @@
 
 #if defined(__x86_64__) || defined(_M_X64) || defined(__i386__)
 #include <immintrin.h>
+
+typedef __m128 float4;
+
+#define float4_set1(X)        _mm_set1_ps(X)
+#define float4_load(XARR)     _mm_loadu_ps(XARR)
+#define float4_store(X, XARR) _mm_storeu_ps(X, XARR)
+#define float4_add(A,B)       _mm_add_ps(A, B)
+#define float4_sub(A,B)       _mm_sub_ps(A, B)
+#define float4_mul(A,B)       _mm_mul_ps(A, B)
+#define float4_div(A,B)       _mm_div_ps(A, B)
+#define float4_sqrt(A)        _mm_sqrt_ps(A)
+#define float4_mul_add(A,B,C) _mm_fmadd_ps(A, B, C)
+
+float float4_hadd(float4 a)
+{
+    float4 sum = _mm_hadd_ps(a, a);
+    sum = _mm_hadd_ps(sum,sum);
+    return _mm_cvtss_f32(sum);
+}
 #elif defined(__aarch64__)
 #include <arm_neon.h>
+typedef float32x4_t float4;
+
+#define float4_set1(X)        vdupq_n_f32(X)
+#define float4_load(XARR)     vld1q_f32(XARR)
+#define float4_store(X, XARR) vst1q_f32(X, XARR)
+#define float4_add(A,B)       vaddq_f32(A, B)
+#define float4_sub(A,B)       vsubq_f32(A, B)
+#define float4_mul(A,B)       vmulq_f32(A, B)
+#define float4_dib(A,B)       vdivq_f32(A, B)
+#define float4_sqrt(A)        vsqrtq_f32(A)
+#define float4_hadd(A)        vaddvq_f32(A)
+#define float4_mul_add(A,B,C) vmaq_f32(C, A, B)
+#endif
 
 void run_gravity_naive(instance_data *instances)
 {
-    float32x4_t mass_i, mass_j;
-    float32x4_t px_i, py_i, pz_i;
-    float32x4_t px_j, py_j, pz_j;
-    float32x4_t local_x, local_y, local_z;
-    float32x4_t r_x, r_y, r_z;
-    float32x4_t dis2, grav;
-    float32x4_t fx_j, fy_j, fz_j;
+    float4 mass_i, mass_j;
+    float4 px_i, py_i, pz_i;
+    float4 px_j, py_j, pz_j;
+    float4 local_x, local_y, local_z;
+    float4 r_x, r_y, r_z;
+    float4 dis2, grav;
+    float4 fx_j, fy_j, fz_j;
 
     static const float g = 0.5f;
-    float32x4_t grav_const = vdupq_n_f32(g);
-    float32x4_t ones = vdupq_n_f32(1.f);
-    float32x4_t neg_ones = vdupq_n_f32(-1.f);
+    float4 grav_const = float4_set1(g);
+    float4 ones       = float4_set1(1.f);
+    float4 neg_ones   = float4_set1(-1.f);
 
     float fx[MAX_INSTANCES] = { 0 };
     float fy[MAX_INSTANCES] = { 0 };
@@ -29,65 +61,65 @@ void run_gravity_naive(instance_data *instances)
 
     for(u32 i=0; i<MAX_INSTANCES; i++)
     {
-        px_i = vdupq_n_f32(instances->px[i]);
-        py_i = vdupq_n_f32(instances->py[i]);
-        pz_i = vdupq_n_f32(instances->pz[i]);
-        mass_i = vdupq_n_f32(instances->masses[i]);
+        px_i   = float4_set1(instances->px[i]);
+        py_i   = float4_set1(instances->py[i]);
+        pz_i   = float4_set1(instances->pz[i]);
+        mass_i = float4_set1(instances->masses[i]);
 
         for(u32 j=i+1; j<MAX_INSTANCES-3; j+=4)
         {
-            px_j = vld1q_f32(instances->px + j);
-            py_j = vld1q_f32(instances->py + j);
-            pz_j = vld1q_f32(instances->pz + j);
-            mass_j = vld1q_f32(instances->masses + j);
+            px_j   = float4_load(instances->px + j);
+            py_j   = float4_load(instances->py + j);
+            pz_j   = float4_load(instances->pz + j);
+            mass_j = float4_load(instances->masses + j);
 
             // direction vector
-            r_x = vsubq_f32(px_j, px_i);
-            r_y = vsubq_f32(py_j, py_i);
-            r_z = vsubq_f32(pz_j, pz_i);
+            r_x = float4_sub(px_j, px_i);
+            r_y = float4_sub(py_j, py_i);
+            r_z = float4_sub(pz_j, pz_i);
 
             // squared distance
-            dis2 = vmulq_f32(r_x, r_x); 
-            dis2 = vfmaq_f32(dis2, r_y, r_y);
-            dis2 = vfmaq_f32(dis2, r_z, r_z);
+            dis2 = float4_mul(r_x, r_x); 
+            dis2 = float4_mul_add(r_y, r_y, dis2);
+            dis2 = float4_mul_add(r_z, r_z, dis2);
 
             // G * m * m / d^2
-            grav = vmulq_f32(grav_const, mass_i);
-            grav = vmulq_f32(grav, mass_j);
-            grav = vdivq_f32(grav, dis2);
+            grav = float4_mul(grav_const, mass_i);
+            grav = float4_mul(grav, mass_j);
+            grav = float4_div(grav, dis2);
 
             // normalize direction vector
-            dis2 = vsqrtq_f32(dis2);
-            dis2 = vdivq_f32(ones, dis2);
-            r_x = vmulq_f32(r_x, dis2);
-            r_y = vmulq_f32(r_y, dis2);
-            r_z = vmulq_f32(r_z, dis2);
+            dis2 = float4_sqrt(dis2);
+            dis2 = float4_div(ones, dis2);
+            r_x  = float4_mul(r_x, dis2);
+            r_y  = float4_mul(r_y, dis2);
+            r_z  = float4_mul(r_z, dis2);
 
             // local force
-            local_x = vmulq_f32(grav, r_x);
-            local_y = vmulq_f32(grav, r_y);
-            local_z = vmulq_f32(grav, r_z);
+            local_x = float4_mul(grav, r_x);
+            local_y = float4_mul(grav, r_y);
+            local_z = float4_mul(grav, r_z);
 
             // add forces
             float f_x[4], f_y[4], f_z[4];
 
             // i entities get all local forces
-            fx[i] += vaddvq_f32(local_x);
-            fy[i] += vaddvq_f32(local_y);
-            fz[i] += vaddvq_f32(local_z);
+            fx[i] += float4_hadd(local_x);
+            fy[i] += float4_hadd(local_y);
+            fz[i] += float4_hadd(local_z);
 
             // j entities get negative of local
-            fx_j = vld1q_f32(fx+j);
-            fy_j = vld1q_f32(fy+j);
-            fz_j = vld1q_f32(fz+j);
+            fx_j = float4_load(fx+j);
+            fy_j = float4_load(fy+j);
+            fz_j = float4_load(fz+j);
 
-            fx_j = vsubq_f32(fx_j, local_x);
-            fy_j = vsubq_f32(fy_j, local_y);
-            fz_j = vsubq_f32(fz_j, local_z);
+            fx_j = float4_sub(fx_j, local_x);
+            fy_j = float4_sub(fy_j, local_y);
+            fz_j = float4_sub(fz_j, local_z);
 
-            vst1q_f32(fx+j, fx_j);
-            vst1q_f32(fy+j, fy_j);
-            vst1q_f32(fz+j, fz_j);
+            float4_store(fx+j, fx_j);
+            float4_store(fy+j, fy_j);
+            float4_store(fz+j, fz_j);
         }
 
         b3Vec3 force = { fx[i], fy[i], fz[i] };
@@ -95,7 +127,6 @@ void run_gravity_naive(instance_data *instances)
         b3Body_ApplyForceToCenter(instances->bodies[i], force, true);
     }
 }
-#endif
 
 bool instances_init(instance_data *instances)
 {
