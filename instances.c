@@ -3,7 +3,7 @@
 #include "instances.h"
 #include "random_gen.h"
 
-#if defined(__x86_64__) || defined(_M_X64) || defined(__i386__)
+#ifdef __x86_64__
 #include <immintrin.h>
 
 typedef __m128 float4;
@@ -24,7 +24,7 @@ float float4_hadd(float4 a)
     sum = _mm_hadd_ps(sum,sum);
     return _mm_cvtss_f32(sum);
 }
-#elif defined(__aarch64__)
+#else
 #include <arm_neon.h>
 typedef float32x4_t float4;
 
@@ -34,11 +34,11 @@ typedef float32x4_t float4;
 #define float4_add(A,B)       vaddq_f32(A, B)
 #define float4_sub(A,B)       vsubq_f32(A, B)
 #define float4_mul(A,B)       vmulq_f32(A, B)
-#define float4_dib(A,B)       vdivq_f32(A, B)
+#define float4_div(A,B)       vdivq_f32(A, B)
 #define float4_sqrt(A)        vsqrtq_f32(A)
 #define float4_hadd(A)        vaddvq_f32(A)
-#define float4_mul_add(A,B,C) vmaq_f32(C, A, B)
-#endif
+#define float4_mul_add(A,B,C) vfmaq_f32(C, A, B)
+#endif // INTRINSICS
 
 void run_gravity_naive(instance_data *instances)
 {
