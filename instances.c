@@ -101,7 +101,7 @@ void run_gravity_naive(instance_data *instances)
             local_z = float4_mul(grav, r_z);
 
             // add forces
-            float f_x[4], f_y[4], f_z[4];
+            //float f_x[4], f_y[4], f_z[4];
 
             // i entities get all local forces
             fx[i] += float4_hadd(local_x);
@@ -165,7 +165,7 @@ bool instances_init(instance_data *instances)
 
         b3ShapeDef shape_def = b3DefaultShapeDef();
         shape_def.density = m;
-        shape_def.baseMaterial.friction = random_float();
+        //shape_def.baseMaterial.friction = random_float();
 
         b3BoxHull box = b3MakeBoxHull(scale[0] * 0.5, scale[1] * 0.5f, scale[2] * 0.5f);
 
