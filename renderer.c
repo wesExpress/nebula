@@ -233,20 +233,20 @@ bool renderer_update(render_data *renderer, dm_context *context, instance_data *
         }
     }
 
-    if(dm_key_is_pressed(context, DM_KEY_A))
+    if(dm_input_key_is_pressed(context, DM_KEY_A))
     {
         renderer->cam_pos[0] -= 0.1f;
     }
-    else if(dm_key_is_pressed(context, DM_KEY_D))
+    else if(dm_input_key_is_pressed(context, DM_KEY_D))
     {
         renderer->cam_pos[0] += 0.1f;
     }
 
-    if(dm_key_is_pressed(context, DM_KEY_W))
+    if(dm_input_key_is_pressed(context, DM_KEY_W))
     {
         renderer->cam_pos[2] -= 0.1f;
     }
-    else if(dm_key_is_pressed(context, DM_KEY_S))
+    else if(dm_input_key_is_pressed(context, DM_KEY_S))
     {
         renderer->cam_pos[2] += 0.1f;
     }
@@ -287,7 +287,9 @@ void renderer_render(render_data *renderer, dm_context *context, gui_context *gu
     const int width = context->window.width;
     const int height = context->window.height;
 
-    dm_render_command_begin_rendering(context, render_target, 0,0,0,1, 1.f, DM_RENDER_LOAD_OP_CLEAR, DM_RENDER_STORE_OP_STORE, DM_RENDER_LOAD_OP_CLEAR, DM_RENDER_STORE_OP_STORE);
+    float target_clear[] = { 0,0,0,1 };
+
+    dm_render_command_begin_rendering(context, render_target, target_clear, 1.f, DM_RENDER_LOAD_OP_CLEAR, DM_RENDER_STORE_OP_STORE, DM_RENDER_LOAD_OP_CLEAR, DM_RENDER_STORE_OP_STORE);
         dm_render_command_set_viewport(context, 0,0, width, height, 0, 1.f);
         dm_render_command_set_scissor(context, 0,0, width, height);
         dm_render_command_bind_pipeline(context, renderer->raster_pipeline);
@@ -298,17 +300,16 @@ void renderer_render(render_data *renderer, dm_context *context, gui_context *gu
 
     dm_render_command_signal(context, renderer->synchronization[current_frame]);
 
-    // compute time
+#if 0
     dm_resource compute_resources[] = {
         renderer->compute_frame_data[current_frame],
         render_target
     };
 
-    const u16 dx = (context->window.width / 2 + GRID_X - 1) / GRID_X;
-    const u16 dy = (context->window.height + GRID_Y - 1) / GRID_Y;
+    const u16 dx = (context->window.width * context->window.scale_w / 2 + GRID_X - 1) / GRID_X;
+    const u16 dy = (context->window.height * context->window.scale_h + GRID_Y - 1) / GRID_Y;
     const u16 dz = GRID_Z;
 
-#if 0
     dm_compute_command_wait(context, renderer->synchronization[current_frame]);
 
     dm_compute_command_begin_recording(context);
@@ -326,9 +327,11 @@ void renderer_render(render_data *renderer, dm_context *context, gui_context *gu
         renderer->sampler
     };
 
+    float swapchain_clear[] = { 1,0,1,1 };
+
     dm_render_command_wait(context, renderer->synchronization[current_frame]);
 
-    dm_render_command_begin_rendering(context, renderer->swapchain, 1,0,1,1, 1, DM_RENDER_LOAD_OP_CLEAR, DM_RENDER_STORE_OP_STORE, DM_RENDER_LOAD_OP_CLEAR, DM_RENDER_STORE_OP_DONT_CARE);
+    dm_render_command_begin_rendering(context, renderer->swapchain, swapchain_clear, 1, DM_RENDER_LOAD_OP_CLEAR, DM_RENDER_STORE_OP_STORE, DM_RENDER_LOAD_OP_CLEAR, DM_RENDER_STORE_OP_DONT_CARE);
         dm_render_command_set_viewport(context, 0,0, width, height, 0, 1.f);
         dm_render_command_set_scissor(context, 0,0, width, height);
         dm_render_command_bind_pipeline(context, renderer->quad_pipeline);
