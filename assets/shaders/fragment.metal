@@ -35,7 +35,7 @@ fragment_out f_main(
     f_out.color = arg.texture.sample(arg.s, v_out.uv);
     f_out.color *= v_out.color;
 
-    float3 dir = normalize(float3(0,0,0) - v_out.world_pos.xyz);
+    float3 dir = normalize(float3(0,-10.f,0) - v_out.world_pos.xyz);
 
     f_out.color.rgb *= max(dot(dir, normalize(v_out.normal.xyz)), 0.f);
 

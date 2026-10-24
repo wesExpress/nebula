@@ -1,9 +1,5 @@
 #include "application.h"
 
-#ifndef NDEBUG
-#define NEBDEBUG
-#endif
-
 int main(void)
 {
     application app = { 0 };

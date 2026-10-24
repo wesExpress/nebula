@@ -20,7 +20,7 @@ bool application_init(application *app, u16 width, u16 height, const char *title
     if(!renderer_init(&app->renderer, &app->context)) return false;
 
     /********
-     * IMGUI 
+     * GUI 
      *********/
     if(!gui_init(&app->context, &app->gui_ctx)) return false;
 
@@ -77,7 +77,7 @@ void application_run(application *app)
          ***************/
         if(!dm_update_begin(&app->context)) break;
 
-        dm_render_command_update_begin(&app->context);
+        //dm_render_command_update_begin(&app->context);
             gui_new_frame(&app->context, &app->gui_ctx);
 
             instances_update(app->instances);
@@ -85,7 +85,7 @@ void application_run(application *app)
             if(!renderer_update(&app->renderer, &app->context, app->instances)) break;
 
             if(!gui_end_frame(&app->context, &app->gui_ctx)) break;
-        dm_render_command_update_end(&app->context);
+        //dm_render_command_update_end(&app->context);
 
         /*********
          * RENDER
@@ -105,6 +105,8 @@ void application_run(application *app)
 
 void application_shutdown(application *app)
 {
+    instances_shutdown(app->instances);
+
     dm_shutdown(&app->context);
 
     dm_arena_detroy(&app->arena);

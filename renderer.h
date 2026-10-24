@@ -1,10 +1,11 @@
-#ifndef __VOXEL_RENDERER_H__
-#define __VOXEL_RENDERER_H__
+#ifndef __RENDERER_H__
+#define __RENDERER_H__
 
 #include "DarkMatter/dm.h"
 
 #include "gui.h"
 #include "instances.h" 
+#define CGLM_ALL_UNALIGNED
 #include "cglm/cglm.h"
 
 typedef struct render_data_t
@@ -46,4 +47,4 @@ bool renderer_init(render_data *renderer, dm_context *context);
 bool renderer_update(render_data *renderer, dm_context *context, instance_data* instances);
 void renderer_render(render_data *renderer, dm_context *context, gui_context *gui_ctx);
 
-#endif // __VOXEL_RENDERER_H__
+#endif // __RENDERER_H__
