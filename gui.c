@@ -76,37 +76,6 @@ bool gui_init(dm_context *context, gui_context *gui_ctx)
     return true;
 }
 
-void gui_new_frame(dm_context *context, gui_context *gui_ctx)
-{
-    ImGui_NewFrame();
-
-#if 0
-    ImGuiIO *io = ImGui_GetIO();
-    ImGui_ShowDemoWindow(&demo);
-
-    static float f = 0.0f;
-    static int counter = 0;
-    static ImColor clear_color;
-
-    ImGui_Begin("Hello, world!", NULL, 0);              // Create a window called "Hello, world!" and append into it.
-
-    ImGui_Text("This is some useful text.");            // Display some text (you can use a format strings too)
-    ImGui_Checkbox("Demo Window", &demo);               // Edit bools storing our window open/close state
-    ImGui_Checkbox("Another Window", &demo);
-
-    ImGui_SliderFloat("float", &f, 0.0f, 1.0f);            // Edit 1 float using a slider from 0.0f to 1.0f
-    ImGui_ColorEdit3("clear color", (float*)&clear_color, 0); // Edit 3 floats representing a color
-
-    if (ImGui_Button("Button")) // Buttons return true when clicked (most widgets return true when edited/activated)
-        counter++;
-    ImGui_SameLine();
-    ImGui_Text("counter = %d", counter);
-
-    ImGui_Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / io->Framerate, io->Framerate);
-    ImGui_End();
-#endif
-}
-
 bool gui_create_texture(dm_context *context, ImTextureData *tex, dm_resource *resource)
 {
     dm_texture2d_desc desc = {
@@ -132,7 +101,7 @@ void gui_update_texture(dm_context *context, ImTextureData *tex, dm_resource res
     ImTextureData_SetStatus(tex, ImTextureStatus_OK);
 }
 
-bool gui_end_frame(dm_context *context, gui_context *gui_ctx)
+bool gui_update_buffers(dm_context *context, gui_context *gui_ctx)
 {
     const u8 current_frame = context->renderer.current_frame;
 

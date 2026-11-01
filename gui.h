@@ -22,8 +22,7 @@ typedef struct gui_context_t
 } gui_context;
 
 bool gui_init(dm_context *context, gui_context *gui_ctx);
-void gui_new_frame(dm_context *context, gui_context *gui_ctx);
-bool gui_end_frame(dm_context *context, gui_context *gui_ctx);
+bool gui_update_buffers(dm_context *context, gui_context *gui_ctx);
 void gui_render(dm_context *context, gui_context *gui_context);
 
 #endif

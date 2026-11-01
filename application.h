@@ -13,6 +13,8 @@ typedef struct application_t
     instance_data *instances;
     gui_context    gui_ctx;
 
+    dm_resource swapchain, render_target[DM_FRAMES_IN_FLIGHT];
+
     dm_arena arena;
 } application;
 

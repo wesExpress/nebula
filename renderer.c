@@ -5,6 +5,8 @@
 
 #include "vertex_data.h"
 
+#include "pipelines/quad_pipeline.h"
+
 #define GRID_X 16
 #define GRID_Y 16
 #define GRID_Z 1
@@ -59,7 +61,7 @@ bool renderer_init(render_data *renderer, dm_context *context)
         .primitive_type=DM_PRIMITIVE_TRIANGLE_LIST
     };
 
-    if(!dm_renderer_create_raster_pipeline(context, quad_pipe_desc, &renderer->quad_pipeline)) return false;
+    //if(!dm_renderer_create_raster_pipeline(context, quad_pipe_desc, &renderer->quad_pipeline)) return false;
 
     // object pipeline
     dm_raster_shader vertex_shader = {
@@ -203,7 +205,7 @@ bool renderer_init(render_data *renderer, dm_context *context)
         .data=quad_indices
     };
 
-    if(!dm_renderer_create_buffer(context, quad_ib_desc, &renderer->quad_ib)) return false;
+    if(!quad_pipeline_init(context, &renderer->quad_pipe)) return false;
 
     // synchronization
     for(u8 i=0; i<DM_FRAMES_IN_FLIGHT; i++)
@@ -267,6 +269,11 @@ bool renderer_update(render_data *renderer, dm_context *context, instance_data *
     renderer->frame_time += 3.1415926535f / 180.f;
     dm_render_command_update_buffer(context, renderer->compute_frame_data[current_frame], &renderer->frame_time, sizeof(float), 0);
 
+    quad q = { { 1,1,1,1 }, 100,100,100,100 };
+
+    quad_pipeline_submit_quad(context, &renderer->quad_pipe, q);
+    quad_pipeline_update_buffers(context, &renderer->quad_pipe);
+
     return true;
 }
 
@@ -298,7 +305,7 @@ void renderer_render(render_data *renderer, dm_context *context, gui_context *gu
         dm_render_command_draw(context, 36, 0, MAX_INSTANCES, 0);
     dm_render_command_end_rendering(context, render_target);
 
-    dm_render_command_signal(context, renderer->synchronization[current_frame]);
+    //dm_render_command_signal(context, renderer->synchronization[current_frame]);
 
 #if 0
     dm_resource compute_resources[] = {
@@ -329,13 +336,13 @@ void renderer_render(render_data *renderer, dm_context *context, gui_context *gu
 
     float swapchain_clear[] = { 1,0,1,1 };
 
-    dm_render_command_wait(context, renderer->synchronization[current_frame]);
+    //dm_render_command_wait(context, renderer->synchronization[current_frame]);
 
     dm_render_command_begin_rendering(context, renderer->swapchain, swapchain_clear, 1, DM_RENDER_LOAD_OP_CLEAR, DM_RENDER_STORE_OP_STORE, DM_RENDER_LOAD_OP_CLEAR, DM_RENDER_STORE_OP_DONT_CARE);
         dm_render_command_set_viewport(context, 0,0, width, height, 0, 1.f);
         dm_render_command_set_scissor(context, 0,0, width, height);
-        dm_render_command_bind_pipeline(context, renderer->quad_pipeline);
-        dm_render_command_bind_index_buffer(context, renderer->quad_ib, 0);
+        //dm_render_command_bind_pipeline(context, renderer->quad_pipe);
+        //dm_render_command_bind_index_buffer(context, renderer->quad_ib, 0);
         dm_render_command_push_resources(context, quad_resources, 2);
         dm_render_command_draw(context, 6, 0, 1, 0);
 

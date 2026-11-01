@@ -5,6 +5,9 @@
 
 #include "gui.h"
 #include "instances.h" 
+
+#include "pipelines/quad_pipeline.h"
+
 #define CGLM_ALL_UNALIGNED
 #include "cglm/cglm.h"
 
@@ -29,9 +32,8 @@ typedef struct render_data_t
     dm_resource instb[DM_FRAMES_IN_FLIGHT];
     dm_resource texture, sampler;
 
-    dm_pipeline raster_pipeline, quad_pipeline;
+    dm_pipeline raster_pipeline;
     dm_resource render_target[DM_FRAMES_IN_FLIGHT];
-    dm_resource quad_ib;
 
     dm_pipeline imgui_pipeline;
     dm_resource imgui_vb[DM_FRAMES_IN_FLIGHT], imgui_ib[DM_FRAMES_IN_FLIGHT];
@@ -41,6 +43,8 @@ typedef struct render_data_t
     dm_resource compute_frame_data[DM_FRAMES_IN_FLIGHT];
 
     dm_resource synchronization[DM_FRAMES_IN_FLIGHT];
+
+    quad_pipeline quad_pipe;
 } render_data;
 
 bool renderer_init(render_data *renderer, dm_context *context);

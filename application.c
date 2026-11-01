@@ -38,7 +38,6 @@ bool application_init(application *app, u16 width, u16 height, const char *title
     // buffers
     resources[resource_count++] = &app->renderer.vb;
     resources[resource_count++] = &app->renderer.ib;
-    resources[resource_count++] = &app->renderer.quad_ib;
 
     for(u8 i=0; i<DM_FRAMES_IN_FLIGHT; i++)
     {
@@ -77,24 +76,20 @@ void application_run(application *app)
          ***************/
         if(!dm_update_begin(&app->context)) break;
 
-        //dm_render_command_update_begin(&app->context);
-            gui_new_frame(&app->context, &app->gui_ctx);
-
             instances_update(app->instances);
 
             if(!renderer_update(&app->renderer, &app->context, app->instances)) break;
 
-            if(!gui_end_frame(&app->context, &app->gui_ctx)) break;
-        //dm_render_command_update_end(&app->context);
+            if(!gui_update_buffers(&app->context, &app->gui_ctx)) break;
+
+        if(!dm_render_end(&app->context))   break;
 
         /*********
          * RENDER
          **********/
         if(!dm_render_begin(&app->context)) break;
 
-        renderer_render(&app->renderer, &app->context, &app->gui_ctx);
-
-        if(!dm_render_end(&app->context))   break;
+            renderer_render(&app->renderer, &app->context, &app->gui_ctx);
 
         /************
          * END FRAME
